@@ -122,7 +122,7 @@ def scrape_new_releases():
     cache.set(cache_key, html_content, settings.SCRAPE_CACHE_TIMEOUT)
     return html_content
 
-
+import re
 def parse_search_results(html):
     soup = BeautifulSoup(html, "html.parser")
     books = []
@@ -134,8 +134,17 @@ def parse_search_results(html):
         title = title_tag.get_text(strip=True) if title_tag else None
         image = img_tag["src"] if img_tag else None
 
+        author = "Unknown Author"
+        if link:
+            author_match = re.search(r'/authors/([^/]+)/', link)
+            if author_match:
+                author = ' '.join(
+                    name.capitalize() 
+                    for name in author_match.group(1).split('-')
+                )
         books.append({
             "title": title,
+            "author": author,
             "link": link,
             "image": image
         })
