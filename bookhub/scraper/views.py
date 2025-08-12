@@ -47,21 +47,42 @@ def new_releases(request):
 
 @api_view(['GET'])
 def book_detail(request, book_slug):
-    """
-    Handle book details with the new URL format:
-    /authors/{author-name}/pdf-epub-{book-title}-download-{unique-id}/
-    """
-    book_url = f"{settings.API_BASE_URL}/authors/{book_slug}/"
-    details = scrape_book_details(book_url)
-    print("book slug", book_slug)
-    
-    if not details:
-        return Response({'error': 'Book not found or could not be loaded'}, status=404)
-    
-    return Response({
-        'status': 'success',
-        'data': details
-    })
+    """Enhanced book detail endpoint with safety checks"""
+    try:
+        book_url = f"{settings.API_BASE_URL}/authors/{book_slug}/"
+        details = scrape_book_details(book_url)
+        
+        if not details:
+            return Response({'error': 'Book not found'}, status=404)
+        
+        # Transform for frontend
+        response_data = {
+            'title': details['title'],
+            'author': details['author'],
+            'publish_date': details['publish_date'],
+            'cover_image': details['cover_image'],
+            'description': details['description'],
+            'summary': details['summary'],
+            'metadata': details['metadata'],
+            'download_options': [
+                {
+                    'type': option['type'],
+                    'method': option['method'],
+                    'url': '/api/download-proxy/' if option['method'] == 'POST' else option.get('url'),
+                    'data': option.get('inputs', {}),
+                    'filename': option.get('filename')
+                }
+                for option in details['download_options']
+            ]
+        }
+        
+        return Response({
+            'status': 'success',
+            'data': response_data
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
 
 @api_view(['GET'])
 def download_proxy(request):
