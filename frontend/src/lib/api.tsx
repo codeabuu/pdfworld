@@ -13,3 +13,13 @@ export const searchBooks = async(query: string) => {
         throw error;
     }
 };
+
+export const getBookDetails = async (book_slug: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}api/book-detail/${book_slug}/`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching book details:", error);
+    throw error;
+  }
+};

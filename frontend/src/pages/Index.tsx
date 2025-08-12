@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
+const API_BASE_URL = "http://127.0.0.1:8000/";
+
 interface Book {
   title: string;
   author: string;
@@ -26,6 +28,12 @@ const Index = () => {
   const location = useLocation();
 
   useEffect(() => {
+    if (location.state?.searchResults) {
+      setSearchResults(location.state.searchResults);
+      setHasSearched(true);
+      return;
+    }
+
     const params = new URLSearchParams(location.search);
     const searchQuery = params.get('q');
     
@@ -37,7 +45,7 @@ const Index = () => {
       setHasSearched(false);
       setSearchResults([]);
     }
-  }, [location.search]);
+  }, [location.search, location.state]);
    
   const fetchSearchResults = async (query: string) => {
     try {
@@ -91,16 +99,22 @@ const Index = () => {
                       </p>
                     </CardContent>
                     <CardFooter className="p-4 pt-0">
-                      <Button asChild className="w-full">
-                        <a 
-                          href={book.link} 
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center"
-                        >
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          View Details
-                        </a>
+                      <Button asChild className="w-full cursor-pointer"
+                        onClick={() => {
+                          const slug = book.link.split('/').filter(Boolean).pop();
+                          navigate(`/book/${slug}`, {
+                            state: {
+                              fromSearch: true,
+                              searchQuery: new URLSearchParams(location.search).get('q') || '',
+                              searchResults: searchResults // Pass the current results
+                            }
+                          });
+                        }}
+                      >
+                          <div className="flex items-center justify-center">
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            <span>View Details</span>
+                          </div>
                       </Button>
                     </CardFooter>
                   </Card>
