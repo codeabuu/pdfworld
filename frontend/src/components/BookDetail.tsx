@@ -7,6 +7,7 @@ import { getBookDetails } from '@/lib/api';
 
 const API_BASE_URL = "http://127.0.0.1:8000/";
 
+
 interface BookDetails {
   title: string;
   author: string;
@@ -14,6 +15,7 @@ interface BookDetails {
   description: string[];
   summary: string;
   image?: string;
+  book_link: string;
   metadata: {
     full_book_name: string;
     author_name: string;
@@ -40,6 +42,8 @@ export default function BookDetail() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingType, setDownloadingType] = useState<string | null>(null);
 
   useEffect(() => {
     
@@ -70,7 +74,8 @@ export default function BookDetail() {
           // Update book data with image
           setBook({
             ...data.data,
-            image: matchingBook?.image || '/placeholder-book.jpg'
+            image: matchingBook?.image || '/placeholder-book.jpg',
+            book_link: matchingBook?.link || 'null'
           });
         } else {
           throw new Error(data.error || 'Failed to load book');
@@ -85,36 +90,48 @@ export default function BookDetail() {
     fetchBookDetails();
   }, [book_slug]);
 
-  const handleDownload = async (option: BookDetails['download_options'][0]) => {
+  const handleDownload = async (type: string) => {
     try {
-      if (option.method === 'GET' && option.url) {
-        window.open(option.url, '_blank');
-      } else {
-        const response = await fetch('/api/download-proxy/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...option.data,
-            filename: option.filename
-          })
-        });
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = option.filename || 'download';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+      setDownloadingType(type);
+      setError('');
+      if (!book?.book_link) {
+        throw new Error("Book link not available");
       }
+
+      const response = await fetch(`${API_BASE_URL}api/download/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: book.book_link,
+          type: type,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Download failed");
+      }
+
+      // Get file as blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${book.metadata.full_book_name}.pdf`; // Friendly filename
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Download failed:', err);
-      setError('Download failed. Please try again.');
+      console.error("Download failed:", err);
+      setError(err instanceof Error ? err.message : "Download failed. Please try again.");
+    } finally{
+      setDownloadingType(null);
     }
   };
+
 
   
 
@@ -233,17 +250,46 @@ return (
             {book.download_options.map((option, index) => (
               <Button
                 key={index}
-                onClick={() => handleDownload(option)}
+                onClick={() => handleDownload(option.type)}
                 className="min-w-[120px]"
                 variant="outline"
+                disabled={isDownloading}
               >
                 <div className="flex items-center gap-2">
-                  <span>{option.type}</span>
-                  <span className="text-xs opacity-75">
-                    ({option.type === 'PDF' 
-                      ? book.metadata.pdf_file_size 
-                      : book.metadata.epub_file_size})
+                {downloadingType === option.type ? (
+                  <>
+                    <svg 
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      fill="none" 
+                      viewBox="0 0 24 24"
+                    >
+                      <circle 
+                        className="opacity-25" 
+                        cx="12" 
+                        cy="12" 
+                        r="10" 
+                        stroke="currentColor" 
+                        strokeWidth="4"
+                      ></circle>
+                      <path 
+                        className="opacity-75" 
+                        fill="currentColor" 
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <span>{option.type}</span>
+                    <span className="text-xs opacity-75">
+                      ({option.type === 'PDF' 
+                        ? book.metadata.pdf_file_size 
+                        : book.metadata.epub_file_size})
                   </span>
+                  </>
+                )}
                 </div>
               </Button>
             ))}
