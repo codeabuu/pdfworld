@@ -1,9 +1,9 @@
 from decouple import config
 from pathlib import Path
-
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download_temp')
 SECRET_KEY = 'django-insecure-r^up3&3xuy0rb$)w!v32+qh57llz_(f^28vqadcyvwbjeoa)v5'
 
 DEBUG = True

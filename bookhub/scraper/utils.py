@@ -237,4 +237,3 @@ def parse_new_releases(html):
         })
 
     return books
-
