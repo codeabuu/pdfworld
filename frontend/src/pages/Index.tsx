@@ -11,6 +11,7 @@ import { Search, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { getHighQualityImage } from "@/lib/utils";
 
 const API_BASE_URL = "http://127.0.0.1:8000/";
 
@@ -85,7 +86,7 @@ const Index = () => {
                     <CardHeader className="p-0">
                       <div className="relative aspect-[2/3]">
                         <img
-                          src={book.image || "/placeholder-book.jpg"}
+                          src={getHighQualityImage(book.image) || "/placeholder-book.jpg"}
                           alt={`${book.title} by ${book.author}`}
                           className="object-cover rounded-t-lg w-full h-full"
                           loading="lazy"

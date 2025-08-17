@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import BookDetail from "./components/BookDetail";
+import Releases from "./components/Releases";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/book/:book_slug" element={<BookDetail />} />
           <Route path="/search" element={<Index />} />
+          <Route path="/releases" element={<Releases />} />
+          {/* Add other routes as needed */}
           {/* Catch-all route for 404 Not Found */}
           <Route path="*" element={<NotFound />} />
         </Routes>

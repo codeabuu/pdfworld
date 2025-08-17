@@ -23,3 +23,14 @@ export const getBookDetails = async (book_slug: string) => {
     throw error;
   }
 };
+
+export const getNewReleases = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}api/new-releases/`);
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching new releases:", error);
+    throw error;
+  }
+};

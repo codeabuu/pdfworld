@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getBookDetails } from '@/lib/api';
+import { getHighQualityImage } from '@/lib/utils';
 
 
 const API_BASE_URL = "http://127.0.0.1:8000/";
@@ -165,7 +166,7 @@ return (
         {book.image && (
           <div className="w-full md:w-1/3">
             <img
-              src={book.image}
+              src={getHighQualityImage(book.image)}
               alt={`${book.metadata.full_book_name} cover`}
               className="rounded-lg shadow-md w-full max-w-xs mx-auto"
               onError={(e) => {

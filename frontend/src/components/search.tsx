@@ -5,6 +5,7 @@ import { searchBooks } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getHighQualityImage } from "@/lib/utils";
 
 interface SearchResult {
   title: string;
@@ -80,7 +81,7 @@ export default function SearchPage() {
                 <CardHeader className="p-0">
                   <div className="relative aspect-[2/3]">
                     <img
-                      src={book.image || "/placeholder-book.jpg"}
+                      src={getHighQualityImage(book.image) || "/placeholder-book.jpg"}
                       alt={book.title}
                       className="object-cover rounded-t-lg"
                       sizes="(max-width: 768px) 100vw, 33vw"
@@ -90,13 +91,13 @@ export default function SearchPage() {
                 <CardContent className="p-4">
                   <h3 className="font-medium line-clamp-2">{book.title}</h3>
                 </CardContent>
-                <CardFooter className="p-4 pt-0">
+                {/* <CardFooter className="p-4 pt-0">
                   <Button asChild className="w-full">
                     <Link to={book.link} target="_blank">
                       View Details
                     </Link>
                   </Button>
-                </CardFooter>
+                </CardFooter> */}
               </Card>
             ))}
           </div>
