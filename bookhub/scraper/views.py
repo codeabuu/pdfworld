@@ -204,22 +204,31 @@ def download_proxy(request):
         if not pdf_url:
             raise ValueError("Download link not found")
 
-        # 7. Stream download to temp file
-        temp_path = os.path.join(settings.DOWNLOAD_DIR, f"dl_{uuid.uuid4().hex}.pdf")
-        with open(temp_path, 'wb') as f:
-            for chunk in scraper.get(pdf_url, stream=True).iter_content(chunk_size=8192):
-                f.write(chunk)
+        # # 7. Stream download to temp file
+        # temp_path = os.path.join(settings.DOWNLOAD_DIR, f"dl_{uuid.uuid4().hex}.pdf")
+        # with open(temp_path, 'wb') as f:
+        #     for chunk in scraper.get(pdf_url, stream=True).iter_content(chunk_size=8192):
+        #         f.write(chunk)
 
-        # 8. Verify PDF
-        with open(temp_path, 'rb') as f:
-            if f.read(4) != b'%PDF':
-                raise ValueError("Invalid PDF file")
+        # # 8. Verify PDF
+        # with open(temp_path, 'rb') as f:
+        #     if f.read(4) != b'%PDF':
+        #         raise ValueError("Invalid PDF file")
 
-        # 9. Return as download
+        # # 9. Return as download
+
+        pdf_response = scraper.get(pdf_url)
+        pdf_response.raise_for_status()
+        pdf_content = pdf_response.content
+        
+        if not pdf_content.startswith(b'%PDF'):
+            raise ValueError("Invalid PDF file")
+        
+        cleaned_pdf = remove_watermarks(pdf_content)
         return FileResponse(
-            open(temp_path, 'rb'),
+            io.BytesIO(cleaned_pdf),
             as_attachment=True,
-            filename=os.path.basename(pdf_url)[:100],  # Safe filename length
+            filename=os.path.basename(pdf_url)[:100],
             content_type='application/pdf'
         )
 
@@ -350,22 +359,22 @@ def remove_watermarks(input_pdf_bytes):
     doc = fitz.open(stream=input_buffer.read(), filetype="pdf")
     
     for page in doc:
-        # Search for all watermark variations
+        # Search watermarkss
         watermark_texts = [
             "OceanofPDF", "oceanofpdf.com",
             "www.oceanofpdf.com", "Downloaded from",
             "Ocean of PDF"
         ]
         
-        # First pass: Remove all links/annotations
+        # First pass: TO Remove all links
         for link in page.get_links():
             if "oceanofpdf" in str(link.get("uri", "")).lower():
                 page.delete_link(link)
         
-        # Second pass: Redact all text instances
+        # Second pass: Redact alltext instances
         for text in watermark_texts:
             for inst in page.search_for(text):
-                # Add padding around the found text
+                # Add pad around the found texti
                 padding = 5  # Adjust as needed
                 area = fitz.Rect(
                     max(0, inst.x0 - padding),
@@ -374,10 +383,9 @@ def remove_watermarks(input_pdf_bytes):
                     min(page.rect.height, inst.y1 + padding)
                 )
                 
-                # Add redaction annotation (white rectangle)
-                page.add_redact_annot(area, fill=(1, 1, 1))  # White fill
+                page.add_redact_annot(area, fill=(1, 1, 1))
         
-        # Apply all redactions
+       
         page.apply_redactions()
     
     doc.save(output_buffer)
