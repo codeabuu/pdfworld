@@ -34,3 +34,14 @@ export const getNewReleases = async () => {
     throw error;
   }
 };
+
+export const getMagazines = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}api/magazines/`);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching magazines:", error);
+    throw error;
+  }
+};

@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import BookDetail from "./components/BookDetail";
 import Releases from "./components/Releases";
+import Magazines from "./components/Magazines.tsx";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/book/:book_slug" element={<BookDetail />} />
           <Route path="/search" element={<Index />} />
           <Route path="/releases" element={<Releases />} />
+          <Route path="/magazines" element={<Magazines />} />
           {/* Add other routes as needed */}
           {/* Catch-all route for 404 Not Found */}
           <Route path="*" element={<NotFound />} />

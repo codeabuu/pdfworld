@@ -30,12 +30,12 @@ const BookDiscovery = () => {
     { name: "Biography", color: "bg-green-500", icon: Users },
   ];
 
-  const trendingAuthors = [
-    { name: "Sarah Chen", specialty: "Fantasy & Sci-Fi", books: "23 books", avatar: "bg-purple-400" },
-    { name: "Mike Johnson", specialty: "Tech & Innovation", books: "15 books", avatar: "bg-blue-400" },
-    { name: "Emma Wilson", specialty: "Mystery & Thriller", books: "31 books", avatar: "bg-gray-600" },
-    { name: "David Park", specialty: "Romance & Drama", books: "18 books", avatar: "bg-pink-400" },
-  ];
+  // const trendingAuthors = [
+  //   { name: "Sarah Chen", specialty: "Fantasy & Sci-Fi", books: "23 books", avatar: "bg-purple-400" },
+  //   { name: "Mike Johnson", specialty: "Tech & Innovation", books: "15 books", avatar: "bg-blue-400" },
+  //   { name: "Emma Wilson", specialty: "Mystery & Thriller", books: "31 books", avatar: "bg-gray-600" },
+  //   { name: "David Park", specialty: "Romance & Drama", books: "18 books", avatar: "bg-pink-400" },
+  // ];
 
   useEffect(() => {
     const fetchNewReleases = async () => {
@@ -66,7 +66,7 @@ const BookDiscovery = () => {
 
   // Helper functions to generate mock data for ratings, genres, and readers
   const getRandomRating = () => {
-    return (Math.random() * (5 - 4) + 4).toFixed(1); // Random rating between 4.0 and 5.0
+    return (Math.random() * (5 - 4.4) + 4.4).toFixed(1); // Random rating between 4.4 and 5.0
   };
 
   const getRandomGenre = () => {
@@ -225,7 +225,7 @@ const BookDiscovery = () => {
         </div>
 
         {/* Trending Authors */}
-        <div>
+        {/* <div>
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-3xl font-semibold text-foreground">Trending Authors</h3>
             <Button variant="outline" className="hover-lift">
@@ -249,7 +249,7 @@ const BookDiscovery = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </section>
   );
