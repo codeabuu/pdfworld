@@ -210,24 +210,66 @@ def parse_search_results(html):
 
     return books
 
+# def parse_new_releases(html):
+#     soup = BeautifulSoup(html, "html.parser")
+#     books = []
+
+#     for item in soup.select("a.title-image"):  # selects all book cover links
+#         link = item.get("href")
+#         img_tag = item.select_one("img")
+#         image = None
+        
+#         if img_tag:
+#             # Prefer data-src over src (lazyload images)
+#             image = img_tag.get("data-src") or img_tag.get("src")
+
+#         # Try to find the title in the corresponding info div
+#         title_div = item.find_next("div", class_="widget-event__info")
+#         title_tag = title_div.select_one(".title a") if title_div else None
+#         title = title_tag.get_text(strip=True) if title_tag else None
+
+#         author = "Unknown Author"
+#         if link:
+#             author_match = re.search(r'/authors/([^/]+)/', link)
+#             if author_match:
+#                 author = ' '.join(
+#                     name.capitalize()
+#                     for name in author_match.group(1).split('-')
+#                 )
+#         date = "Unknown"
+#         if title_div:
+#             date_tag = title_div.select_one(".meta")
+#             if date_tag:
+#                 date = date_tag.get_text(strip=True)
+        
+#         books.append({
+#             "title": title,
+#             "link": link,
+#             "image": image,
+#             "author": author,
+#             "date": date
+#         })
+
+#     return books
+
 def parse_new_releases(html):
     soup = BeautifulSoup(html, "html.parser")
     books = []
 
-    for item in soup.select("a.title-image"):  # selects all book cover links
+    for item in soup.select("a.title-image"):
         link = item.get("href")
         img_tag = item.select_one("img")
         image = None
-        
+
         if img_tag:
-            # Prefer data-src over src (lazyload images)
             image = img_tag.get("data-src") or img_tag.get("src")
 
-        # Try to find the title in the corresponding info div
+        # Title
         title_div = item.find_next("div", class_="widget-event__info")
         title_tag = title_div.select_one(".title a") if title_div else None
         title = title_tag.get_text(strip=True) if title_tag else None
 
+        # Author
         author = "Unknown Author"
         if link:
             author_match = re.search(r'/authors/([^/]+)/', link)
@@ -236,23 +278,35 @@ def parse_new_releases(html):
                     name.capitalize()
                     for name in author_match.group(1).split('-')
                 )
-        date = "Unknown"
-        if title_div:
-            date_tag = title_div.select_one(".meta")
-            if date_tag:
-                date = date_tag.get_text(strip=True)
-        
+
         books.append({
             "title": title,
             "link": link,
             "image": image,
             "author": author,
-            "date": date
         })
 
     return books
 
-def parse_new_releases(html):
+def scrape_magazines():
+    cache_key = "magazines_html"
+
+    if cached := cache.get(cache_key):
+        return cached
+
+    url = f"{settings.API_BASE_URL}/magazines-newspapers/"
+    response = make_request(url)
+
+    if not response:
+        return None
+
+    html_content = response.content.decode('utf-8', errors='ignore')
+
+    cache.set(cache_key, html_content, settings.SCRAPE_CACHE_TIMEOUT)
+    return html_content
+
+
+def parse_magazines(html):
     soup = BeautifulSoup(html, "html.parser")
     books = []
 

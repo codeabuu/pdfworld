@@ -1,4 +1,4 @@
-from scraper.views import clean_and_download, search, new_releases, book_detail, download_proxy, test_download
+from scraper.views import clean_and_download, download_magazine, search, new_releases, book_detail, download_proxy, test_download, magazines
 from django.contrib import admin
 from django.urls import path
 
@@ -10,5 +10,7 @@ urlpatterns = [
     path('api/download/', download_proxy, name='download_proxy'),
     # path('api/debug-scrape/', debug_scrape),
     path('test-download/', test_download, name='test_download'),
-    path('api/clean-and-download/', clean_and_download, name='clean_and_download')
+    path('api/clean-and-download/', clean_and_download, name='clean_and_download'),
+    path('api/magazines/', magazines, name='magazines'),
+    path('api/download-magazine/', download_magazine, name='download_magazine')
 ]
