@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import scrape_search, scrape_book_details, scrape_new_releases, parse_search_results, parse_new_releases, scrape_magazines, parse_magazines
+from .utils import scrape_search, scrape_book_details, scrape_new_releases, parse_search_results, parse_new_releases, scrape_magazines, parse_magazines, scrape_novels, parse_novels
 from django.core.cache import cache
 import requests
 from django.http import FileResponse, HttpResponse, HttpResponseNotAllowed
@@ -71,6 +71,31 @@ def magazines(request):
             'results': parsed_results
         }
     )
+
+@api_view(['GET'])
+def mynovels(request):
+    cache_key = 'my_novels'
+
+    if cached := cache.get(cache_key):
+        return Response(
+            {
+            'source': 'OceanofPF Magazines',
+            'count': len(cached),
+            'results': cached
+        }
+        )
+    results = scrape_novels()
+    parsed_results = parse_novels(results)
+    cache.set(cache_key, parsed_results, timeout=60 * 60 * 4)
+
+    return Response(
+        {
+            'source': 'OceanofPDF My Novels',
+            'count': len(parsed_results),
+            'results': parsed_results
+        }
+    )
+
 
 @api_view(['GET'])
 def book_detail(request, book_slug):
@@ -551,3 +576,123 @@ def download_magazine(request):
             {'error': str(e), 'status': 'download_failed'},
             status=400
         )
+from .utils import scrape_genres, parse_genres, parse_books_from_genre, scrape_books_by_genre, get_genre_by_slug
+
+@api_view(['GET'])
+def genres(request):
+    cache_key = 'genres_list'
+
+    if cached := cache.get(cache_key):
+        return Response({
+            'source': 'OceanofPDF Genres',
+            'count': len(cached),
+            'results': cached
+        })
+
+    # This calls scrape_genres() which uses your main link
+    results = scrape_genres()
+    parsed_results = parse_genres(results)
+    cache.set(cache_key, parsed_results, timeout=60 * 60 * 24)
+
+    return Response({
+        'source': 'OceanofPDF Genres',
+        'count': len(parsed_results),
+        'results': parsed_results
+    })
+
+
+@api_view(['GET'])
+def genre_detail(request, genre_slug):
+    """Get detailed information about a specific genre"""
+    cache_key = f'genre_detail_{genre_slug}'
+    
+    if cached := cache.get(cache_key):
+        return Response({
+            'source': 'OceanofPDF Genre Detail',
+            'genre': cached
+        })
+    
+    genre = get_genre_by_slug(genre_slug)
+    if not genre:
+        return Response({
+            'error': f'Genre with slug "{genre_slug}" not found'
+        }, status=404)
+    
+    cache.set(cache_key, genre, timeout=60 * 60 * 12)
+    
+    return Response({
+        'source': 'OceanofPDF Genre Detail',
+        'genre': genre
+    })
+
+@api_view(['GET'])
+def genre_books(request, genre_slug):
+    """Get books for a specific genre using its URL"""
+    try:
+        # Convert page parameter to integer with error handling
+        page_str = request.GET.get('page', '1')
+        page = int(page_str)
+        if page < 1:
+            page = 1
+    except (ValueError, TypeError):
+        page = 1
+    cache_key = f'genre_books_{genre_slug}_page_{page}'
+    page = request.GET.get('page', 1)
+    
+    if cached := cache.get(cache_key):
+        return Response({
+            'source': f'OceanofPDF Books - {genre_slug}',
+            'page': page,
+            'count': len(cached),
+            'results': cached
+        })
+    
+    # Get the genre to access its URL
+    genre = get_genre_by_slug(genre_slug)
+    if not genre:
+        return Response({
+            'error': f'Genre with slug "{genre_slug}" not found'
+        }, status=404)
+    
+    # Scrape books using the genre's URL
+    html_content = scrape_books_by_genre(genre['url'], page)
+    if not html_content:
+        return Response({
+            'error': f'Failed to fetch books for genre: {genre_slug}',
+            'results': []
+        }, status=503)
+    
+    books = parse_books_from_genre(html_content, genre['name'])
+    # base_url = request.build_absolute_uri().split('?')[0]
+    cache.set(cache_key, books, timeout=60 * 60 * 6)
+    
+    return Response({
+        'source': f'OceanofPDF Books - {genre_slug}',
+        'page': page,
+        'count': len(books),
+        'results': books
+    })
+
+@api_view(['GET'])
+def popular_genres(request):
+    """Get top genres by book count"""
+    cache_key = 'genres_list'
+    cached = cache.get(cache_key)
+    
+    if not cached:
+        html_content = scrape_genres()
+        if html_content:
+            cached = parse_genres(html_content)
+            cache.set(cache_key, cached, timeout=60 * 60 * 24)
+    
+    if not cached:
+        return Response({'error': 'No genre data available'}, status=404)
+    
+    # Sort by book count descending and take top 20
+    popular = sorted(cached, key=lambda x: x['book_count'], reverse=True)[:20]
+    
+    return Response({
+        'source': 'OceanofPDF Popular Genres',
+        'count': len(popular),
+        'results': popular
+    })

@@ -341,3 +341,261 @@ def parse_magazines(html):
         })
 
     return books
+
+def scrape_novels():
+    cache_key = "novels_html"
+
+    if cached := cache.get(cache_key):
+        return cached
+
+    url = f"{settings.API_BASE_URL}/webnovels/"
+    response = make_request(url)
+
+    if not response:
+        return None
+
+    html_content = response.content.decode('utf-8', errors='ignore')
+
+    cache.set(cache_key, html_content, settings.SCRAPE_CACHE_TIMEOUT)
+    return html_content
+
+
+def parse_novels(html):
+    soup = BeautifulSoup(html, "html.parser")
+    books = []
+
+    for item in soup.select("a.title-image"):
+        link = item.get("href")
+        img_tag = item.select_one("img")
+        image = None
+
+        if img_tag:
+            image = img_tag.get("data-src") or img_tag.get("src")
+
+        # Title
+        title_div = item.find_next("div", class_="widget-event__info")
+        title_tag = title_div.select_one(".title a") if title_div else None
+        title = title_tag.get_text(strip=True) if title_tag else None
+
+        # Author
+        author = "Unknown Author"
+        if link:
+            author_match = re.search(r'/authors/([^/]+)/', link)
+            if author_match:
+                author = ' '.join(
+                    name.capitalize()
+                    for name in author_match.group(1).split('-')
+                )
+
+        books.append({
+            "title": title,
+            "link": link,
+            "image": image,
+            "author": author,
+        })
+
+    return books
+
+def scrape_genres():
+    """Scrape genres from Ocean of PDF"""
+    cache_key = "genres_html"
+    
+    if cached := cache.get(cache_key):
+        return cached
+    
+    # This is the main link you provided
+    url = settings.API_BASE_URL + "/books-by-genre/"
+    response = make_request(url)
+    
+    if not response:
+        return None
+    
+    html_content = response.content.decode('utf-8', errors='ignore')
+    cache.set(cache_key, html_content, settings.SCRAPE_CACHE_TIMEOUT)
+    return html_content
+
+
+def parse_genres(html):
+    """Parse genres from HTML content with the specific Ocean of PDF structure"""
+    soup = BeautifulSoup(html, "html.parser")
+    genres = []
+    
+    # Find all h3 elements with class h3genres (based on your HTML sample)
+    genre_elements = soup.select("h3.h3genres")
+    
+    for genre_element in genre_elements:
+        # Find the link within the h3 element
+        link_element = genre_element.find("a")
+        if not link_element:
+            continue
+            
+        href = link_element.get('href', '')
+        name = link_element.get_text(strip=True)
+        
+        # Extract the book count from the text following the link
+        genre_text = genre_element.get_text()
+        book_count = 0
+        
+        # Use regex to extract the number in parentheses
+        count_match = re.search(r'\((\d+)\)', genre_text)
+        if count_match:
+            book_count = int(count_match.group(1))
+        
+        # Extract genre slug from URL
+        genre_slug = None
+        if '/category/genres/' in href:
+            genre_slug = href.split('/category/genres/')[-1].strip('/')
+        elif '/genre/' in href:
+            genre_slug = href.split('/genre/')[-1].strip('/')
+        elif '/category/' in href:
+            
+            genre_slug = href.split('/category/')[-1].strip('/')
+        else:
+            
+            genre_slug = href.split('/')[-2] if len(href.split('/')) > 2 else None
+        
+        genres.append({
+            "name": name,
+            "slug": genre_slug,
+            "url": href,
+            "book_count": book_count
+        })
+    
+    # Sort alphabetically by name
+    return sorted(genres, key=lambda x: x['name'])
+
+def scrape_books_by_genre(genre_url, page=1):
+    """Scrape books from a specific genre URL"""
+    try:
+        page = int(page)
+        if page < 1:
+            page = 1
+    except (ValueError, TypeError):
+        page = 1
+
+    cache_key = f"books_{hash(genre_url)}_page_{page}"
+
+    if cached := cache.get(cache_key):
+        return cached
+    
+    # Handle pagination using Ocean of PDF's structure
+    if page > 1:
+        if genre_url.endswith('/'):
+            url = f"{genre_url}page/{page}/"
+        else:
+            url = f"{genre_url}/page/{page}/"
+    else:
+        url = genre_url
+    
+    response = make_request(url)
+    
+    if not response:
+        return None
+    
+    html_content = response.content.decode('utf-8', errors='ignore')
+    cache.set(cache_key, html_content, settings.SCRAPE_CACHE_TIMEOUT)
+    return html_content
+
+
+def parse_books_from_genre(html, genre_name):
+    """Parse books from genre page HTML using exact Ocean of PDF structure"""
+    soup = BeautifulSoup(html, "html.parser")
+    books = []
+    
+    # Use the exact selector for Ocean of PDF book articles
+    book_elements = soup.select("article.post")
+    
+    for item in book_elements:
+        # Extract title and link - exact selectors from the HTML
+        title_element = item.select_one("h2.entry-title a.entry-title-link")
+        if not title_element:
+            continue
+            
+        title = title_element.get_text(strip=True)
+        link = title_element.get('href', '')
+        
+        # Extract author from .postmetainfo (more reliable)
+        author = "Unknown Author"
+        meta_element = item.select_one(".postmetainfo")
+        if meta_element:
+            meta_text = meta_element.get_text()
+            # Look for "Author: " pattern
+            author_match = re.search(r'Author:\s*(.+?)(?:\n|$)', meta_text)
+            if author_match:
+                author = author_match.group(1).strip()
+        
+        # Extract image - use the exact image structure
+        image = None
+        img_element = item.select_one(".entry-image-link img")
+        if img_element:
+            image = img_element.get('data-src') or img_element.get('src')
+            # Ensure absolute URL
+            if image and not image.startswith('http'):
+                image = f"{settings.BASE_URL}{image}"
+        
+        # Extract description from .entry-content
+        description = None
+        desc_element = item.select_one(".entry-content p")
+        if desc_element:
+            description = desc_element.get_text(strip=True)
+            # Remove "Read more..." text if present
+            description = re.sub(r'\[Read more…\]$', '', description).strip()
+        
+        # Extract date if available
+        date = None
+        date_element = item.select_one("time.entry-time")
+        if date_element:
+            date = date_element.get_text(strip=True)
+        
+        books.append({
+            "title": title,
+            "link": link if link.startswith('http') else f"{settings.BASE_URL}{link}",
+            "author": author,
+            "image": image,
+            "description": description,
+            "date": date,
+            "genre": genre_name,
+            "source": "Ocean of PDF"
+        })
+    
+    return books
+
+
+def get_total_pages_from_genre(html):
+    """Extract total pages from pagination elements"""
+    soup = BeautifulSoup(html, "html.parser")
+    
+    # Look for pagination in various locations
+    pagination_elements = soup.select(".pagination, .page-numbers, .nav-links")
+    
+    max_page = 1
+    
+    for element in pagination_elements:
+        # Look for page numbers in links
+        page_links = element.select("a")
+        for link in page_links:
+            text = link.get_text(strip=True)
+            if text.isdigit():
+                max_page = max(max_page, int(text))
+        
+        # Look for page numbers in spans (current page)
+        page_spans = element.select("span")
+        for span in page_spans:
+            text = span.get_text(strip=True)
+            if text.isdigit():
+                max_page = max(max_page, int(text))
+    
+    return max_page if max_page > 1 else 1
+
+
+def get_genre_by_slug(slug):
+    """Get a specific genre by its slug"""
+    html_content = scrape_genres()
+    if not html_content:
+        return None
+    
+    genres = parse_genres(html_content)
+    for genre in genres:
+        if genre['slug'] == slug:
+            return genre
+    return None
