@@ -45,3 +45,40 @@ export const getMagazines = async () => {
     throw error;
   }
 };
+
+export const getNewNovels = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}api/my-novels/`);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching new novels:", error);
+    throw error;
+  }
+};
+
+export const getGenres = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}api/genres/`);
+    if (response.status !== 200) {
+      throw new Error("Network response was not ok");
+    }
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching genres:", error);
+    throw error;
+  }
+};
+
+export const getGenreBooks = async (genreSlug: string, page: number = 1) => {
+  // console.log(`API CALL: Fetching ${genreSlug} books, page ${page}`);
+  try {
+    const response = await axios.get(`${API_BASE_URL}api/genres/${genreSlug}/books/?page=${page}`);
+    // console.log(`API RESPONSE: ${genreSlug} page ${page} - ${response.data.results.length} books`);
+    if (response.status !== 200) throw new Error('Failed to fetch genre books');
+    return response.data;
+  } catch (error) {
+    // console.error("Error fetching genre books:", error);
+    throw error;
+  }
+};

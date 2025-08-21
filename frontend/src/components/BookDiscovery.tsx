@@ -115,7 +115,7 @@ const BookDiscovery = () => {
   }
 
   return (
-    <section id="browse" className="section-padding bg-background">
+    <section id="genres" className="section-padding bg-background">
       <div className="container-custom">
         {/* Section Header */}
         <div className="text-center space-y-4 mb-16">

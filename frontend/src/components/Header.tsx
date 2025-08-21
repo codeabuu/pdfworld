@@ -34,9 +34,9 @@ const Header = ({ onSearch }: HeaderProps) => {
 
   const navItems = [
     { name: "Home", href: "/" },
-    { name: "Browse", href: "#browse" },
-    { name: "Genres", href: "#genres" },
-    { name: "Web Novels", href: "#novels" },
+    // { name: "Browse", href: "#browse" },
+    { name: "New Releasess", href: "/releases" },
+    { name: "Genres", href: "/genres" },
     { name: "Magazines & News Papers", href: "/magazines" },
     { name: "Pricing", href: "#pricing" },
   ];
