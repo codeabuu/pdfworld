@@ -136,19 +136,26 @@ export default function BookDetail() {
 
   
 
-  const handleBack = () => {
-    if (location.state?.fromSearch) {
-      // Navigate back to search with preserved state
-      navigate('/search', {
-        state: {
-          searchQuery: location.state.searchQuery,
-          searchResults: location.state.searchResults
-        }
-      });
-    } else {
-      navigate(-1); // Default back behavior
-    }
-  };
+  // In BookDetail.tsx, update the handleBack function
+const handleBack = () => {
+  if (location.state?.fromGenres) {
+    // Navigate back to genres with preserved state
+    navigate(location.state.returnUrl || '/genres', {
+      state: {
+        preserveScroll: true
+      }
+    });
+  } else if (location.state?.fromSearch) {
+    navigate('/search', {
+      state: {
+        searchQuery: location.state.searchQuery,
+        searchResults: location.state.searchResults
+      }
+    });
+  } else {
+    navigate(-1);
+  }
+};
 
   if (loading) return <div className="text-center py-8">Loading...</div>;
   if (error) return <div className="text-center py-8 text-red-500">{error}</div>;

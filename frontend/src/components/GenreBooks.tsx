@@ -15,6 +15,17 @@ const GenreBooks = ({
   onBookSelect,
   onBackToGenres
 }: GenreBooksProps) => {
+
+  const handleBookClick = (book: any) => {
+    // Extract slug from book link for navigation
+    const slug = book.link.split('/').filter(Boolean).pop();
+    if (slug) {
+      onBookSelect({
+        ...book,
+        slug: slug // Ensure slug is passed for navigation
+      });
+    }
+  };
   
   // Calculate total pages based on book count (7 books per page)
   const calculatedTotalPages = Math.ceil(genre.book_count / 7);
@@ -144,7 +155,7 @@ const GenreBooks = ({
               <div
                 key={`${book.link}-${index}-${currentPage}`}
                 className="bg-card rounded-lg border border-border overflow-hidden group hover:shadow-lg transition-all duration-300 cursor-pointer"
-                onClick={() => onBookSelect(book)}
+                onClick={() => handleBookClick(book)}
               >
                 {/* Book Cover */}
                 <div className="h-64 relative overflow-hidden">
@@ -184,7 +195,7 @@ const GenreBooks = ({
                     className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onBookSelect(book);
+                      handleBookClick(book);
                     }}
                   >
                     View Details

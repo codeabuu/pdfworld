@@ -14,6 +14,7 @@ export interface GenreBook {
   date?: string;
   genre?: string;
   description?: string;
+  slug?: string;
 }
 
 export interface GenreBooksProps {
