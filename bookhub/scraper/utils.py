@@ -566,7 +566,7 @@ def get_total_pages_from_genre(html):
     soup = BeautifulSoup(html, "html.parser")
     
     # Look for pagination in various locations
-    pagination_elements = soup.select(".pagination, .page-numbers, .nav-links")
+    pagination_elements = soup.select("div.pagination, nav.pagination, .page-numbers, .nav-links")
     
     max_page = 1
     
