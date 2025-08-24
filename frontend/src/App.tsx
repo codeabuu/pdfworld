@@ -31,7 +31,12 @@ const App = () => (
           <Route path="/genres" element={<Genres />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />}>
+            <Route index element={<div />} />
+            <Route path="releases" element={<Releases />} />
+            <Route path="genres" element={<Genres />} />
+            <Route path="magazines" element={<Magazines />} />
+          </Route>
           {/* Add other routes as needed */}
           {/* Catch-all route for 404 Not Found */}
           <Route path="*" element={<NotFound />} />
