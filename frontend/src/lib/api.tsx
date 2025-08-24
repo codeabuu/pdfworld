@@ -4,7 +4,7 @@ const API_BASE_URL = "http://127.0.0.1:8000/";
 
 export const searchBooks = async(query: string) => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/search/`, {
+        const response = await axios.get(`${API_BASE_URL}api/search/`, {
             params: { s: query }
         });
         return response.data;

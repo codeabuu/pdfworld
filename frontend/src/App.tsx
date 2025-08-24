@@ -9,6 +9,9 @@ import BookDetail from "./components/BookDetail";
 import Releases from "./components/Releases";
 import Magazines from "./components/Magazines.tsx";
 import Genres from "./components/Genres.tsx";
+import Login from "./components/Login.tsx";
+import Signup from "./components/Signup.tsx";
+import Dashboard from "./components/Dashboard.tsx";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +29,9 @@ const App = () => (
           <Route path="/releases" element={<Releases />} />
           <Route path="/magazines" element={<Magazines />} />
           <Route path="/genres" element={<Genres />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           {/* Add other routes as needed */}
           {/* Catch-all route for 404 Not Found */}
           <Route path="*" element={<NotFound />} />
@@ -37,3 +43,4 @@ const App = () => (
 );
 
 export default App;
+

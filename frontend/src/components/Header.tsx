@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from 'react-router-dom';
 
+
 interface HeaderProps {
   onSearch: (results: any[]) => void;
 }
@@ -75,12 +76,17 @@ const Header = ({ onSearch }: HeaderProps) => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              Login
-            </Button>
-            <Button className="btn-hero">
-              Start Free Trial
-            </Button>
+            <Link to="/login">
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                Login
+              </Button>
+            </Link>
+
+            <Link to="/signup">
+              <Button className="btn-hero">
+                Start Free Trial
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -134,13 +140,17 @@ const Header = ({ onSearch }: HeaderProps) => {
                 </a>
               ))}
               <div className="pt-4 space-y-2">
-                <Button variant="ghost" className="w-full justify-start">
-                  <User className="h-4 w-4 mr-2" />
-                  Login
-                </Button>
-                <Button className="btn-hero w-full">
-                  Start Free Trial
-                </Button>
+                <Link to="/login">
+                  <Button variant="ghost" className="w-full justify-start">
+                    <User className="h-4 w-4 mr-2" />
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="btn-hero w-full">
+                    Start Free Trial
+                  </Button>
+                </Link>
               </div>
             </nav>
           </div>
