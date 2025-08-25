@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, ArrowLeft, Loader, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import { getHighQualityImage } from "@/lib/utils";
 import { GenreBooksProps } from "@/types/types";
-
+import { useNavigate } from "react-router-dom";
 
 const GenreBooks = ({
   genre,
@@ -16,16 +16,21 @@ const GenreBooks = ({
   onBackToGenres
 }: GenreBooksProps) => {
 
-  const handleBookClick = (book: any) => {
-    // Extract slug from book link for navigation
-    const slug = book.link.split('/').filter(Boolean).pop();
+  const handleViewDetails = (book: any) => {
+    const slug = book.link.split("/").filter(Boolean).pop();
     if (slug) {
-      onBookSelect({
-        ...book,
-        slug: slug // Ensure slug is passed for navigation
+      navigate(`/dashboard/book/${slug}`, {
+        state: {
+          fromGenre: true,
+          genreName: genre.name,
+          bookData: book,
+          booksList: books,
+          currentPage: currentPage
+        }
       });
     }
   };
+  const navigate = useNavigate();
   
   // Calculate total pages based on book count (7 books per page)
   const calculatedTotalPages = Math.ceil(genre.book_count / 7);
@@ -100,6 +105,10 @@ const GenreBooks = ({
     onPageChange(page);
   };
 
+  const handleBack = () => {
+    navigate(-1); // Simple back navigation
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -107,9 +116,9 @@ const GenreBooks = ({
         <h1 className="text-4xl font-bold text-foreground">
           {genre.name} Books
         </h1>
-        <Button variant="outline" onClick={onBackToGenres} className="gap-2">
+        <Button variant="outline" onClick={handleBack} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Back to Genres
+          Go Back
         </Button>
       </div>
 
@@ -155,7 +164,7 @@ const GenreBooks = ({
               <div
                 key={`${book.link}-${index}-${currentPage}`}
                 className="bg-card rounded-lg border border-border overflow-hidden group hover:shadow-lg transition-all duration-300 cursor-pointer"
-                onClick={() => handleBookClick(book)}
+                onClick={() => handleViewDetails(book)}
               >
                 {/* Book Cover */}
                 <div className="h-64 relative overflow-hidden">
@@ -195,7 +204,7 @@ const GenreBooks = ({
                     className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleBookClick(book);
+                      handleViewDetails(book);
                     }}
                   >
                     View Details

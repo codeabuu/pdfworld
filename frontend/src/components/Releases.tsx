@@ -43,7 +43,7 @@ const Releases = () => {
     // Extract slug from the book.link (last part of URL)
     const slug = book.link.split('/').filter(Boolean).pop();
     if (slug) {
-      navigate(`/book/${slug}`, {
+      navigate(`/dashboard/book/${slug}`, {
         state: {
           fromReleases: true,
           bookData: book, // Pass the book data for immediate display

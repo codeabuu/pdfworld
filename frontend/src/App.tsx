@@ -24,7 +24,7 @@ const App = () => (
       {/* <ScrollHandler> */}
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/book/:book_slug" element={<BookDetail />} />
+          {/* <Route path="/book/:book_slug" element={<BookDetail />} /> */}
           <Route path="/search" element={<Index />} />
           <Route path="/releases" element={<Releases />} />
           <Route path="/magazines" element={<Magazines />} />
@@ -36,6 +36,8 @@ const App = () => (
             <Route path="releases" element={<Releases />} />
             <Route path="genres" element={<Genres />} />
             <Route path="magazines" element={<Magazines />} />
+            <Route path="book/:book_slug" element={<BookDetail />} />
+            <Route path="genres/:genre_slug" element={<Genres />} />
           </Route>
           {/* Add other routes as needed */}
           {/* Catch-all route for 404 Not Found */}

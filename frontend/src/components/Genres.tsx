@@ -117,7 +117,7 @@ const Genres = () => {
   };
 
   const handleGenreSelect = (genre: Genre) => {
-    navigate(`/genres?genre=${genre.slug}&page=1`);
+    navigate(`/dashboard/genres?genre=${genre.slug}&page=1`);
   };
 
   const handlePageChange = async (page: number) => {

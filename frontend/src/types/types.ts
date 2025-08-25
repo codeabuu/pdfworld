@@ -27,3 +27,41 @@ export interface GenreBooksProps {
   onBookSelect: (book: GenreBook) => void;
   onBackToGenres: () => void;
 }
+
+// types.ts
+export interface Book {
+  title: string;
+  link: string;
+  image: string;
+  author: string;
+  date?: string;
+}
+
+export interface Genre {
+  id: number;
+  name: string;
+  count: number;
+  color?: string;
+}
+
+export interface Magazine {
+  id: number;
+  title: string;
+  image: string;
+  issue: string;
+  date: string;
+  category: string;
+}
+
+export interface SearchResult {
+  title: string;
+  author: string;
+  link: string;
+  image: string;
+}
+
+export interface LoadingState {
+  newReleases: boolean;
+  genres: boolean;
+  magazines: boolean;
+}
