@@ -11,6 +11,8 @@ from scraper.utils import scrape_search
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from bs4 import BeautifulSoup
+from django.contrib.auth.decorators import login_required
+
 
 @api_view(['GET'])
 def search(request):
@@ -98,6 +100,7 @@ def mynovels(request):
 
 
 @api_view(['GET'])
+@login_required
 def book_detail(request, book_slug):
     """Enhanced book detail endpoint with safety checks"""
     try:
@@ -203,7 +206,9 @@ def extract_meta_refresh_url(html):
     match = re.search(r'content="\d+;url=(.*?)"', html, re.IGNORECASE)
     return match.group(1) if match else None
 
+
 @api_view(['POST'])
+@login_required
 def download_proxy(request):
     """
     Endpoint that:
