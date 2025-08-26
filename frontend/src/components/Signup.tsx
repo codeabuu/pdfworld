@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Lock, Mail, User, Eye, EyeOff, Home, ArrowLeft } from "lucide-react";
-import { authService } from "@/services/authservice";
+import { BookOpen, Lock, Mail, User, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { authService } from "@/services/Myauthservice"; // Updated import path
 
 interface SignUpForm {
   email: string;
@@ -128,9 +128,14 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      await authService.signUp(form.email, form.password);
+      await authService.signUp(
+        form.email, 
+        form.password, 
+        form.firstName, 
+        form.lastName
+      );
       
-      setSuccessMessage("Account created successfully! Please check your email to verify your account.");
+      setSuccessMessage("Account created successfully! You can now sign in.");
       
       // Redirect to login after a short delay
       setTimeout(() => {

@@ -25,7 +25,12 @@ import { MagazinesSection } from "./Magazinesection";
 import { SearchResults } from "./Searchresults";
 import { renderLoadingSkeleton, navItems, getHighQualityImage } from "@/lib/utils";
 
-const Dashboard = () => {
+
+interface DashboardProps {
+  children?: React.ReactNode;
+}
+
+const Dashboard = ({ children }: DashboardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -371,7 +376,8 @@ const Dashboard = () => {
                 </section>
               </main>
             )}
-            <Outlet />
+
+            {children || <Outlet />}
           </>
         )}
       </div>

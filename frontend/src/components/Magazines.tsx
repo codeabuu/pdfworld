@@ -5,6 +5,8 @@ import { BookOpen } from "lucide-react";
 import { getMagazines } from "@/lib/api";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { getHighQualityImage } from "@/lib/utils";
+import { authService } from "@/services/Myauthservice";
+import { useAuth } from "@/hooks/useAuth";
 
 const API_BASE_URL = "http://127.0.0.1:8000/";
 
@@ -24,6 +26,7 @@ const Magazines = () => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
     const fetchReleases = async () => {
@@ -44,6 +47,22 @@ const Magazines = () => {
   }, []);
 
   const handleDownload = async (magazineUrl: string, title: string) => {
+    if (isAuthLoading) {
+      setError("Checking authentication...");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      // Redirect to login page with return URL
+      navigate('/login', { 
+        state: { 
+          from: location.pathname,
+          message: 'Please log in to download magazines' 
+        } 
+      });
+
+      return;
+    }
     try {
       setIsDownloading(true);
       setDownloadingId(magazineUrl);
@@ -54,10 +73,25 @@ const Magazines = () => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           url: magazineUrl,
         }),
       });
+
+      if (response.status === 401) {
+        // Update auth status since we got a 401
+        const authCheck = await authService.checkAuth();
+        if (!authCheck) {
+          navigate('/login', { 
+            state: { 
+              from: location.pathname,
+              message: 'Your session expired. Please log in again to download.' 
+            } 
+          });
+          return;
+        }
+      }
 
       if (!response.ok) {
         const errorData = await response.json();

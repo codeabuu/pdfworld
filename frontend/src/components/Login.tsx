@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Lock, Mail, ArrowLeft, Eye, EyeOff, Stars } from "lucide-react";
-import axios from "axios";
+import { authService } from "@/services/Myauthservice";
 
 interface LoginForm {
   email: string;
@@ -82,33 +82,17 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post("/api/login/", {
-        email: form.email,
-        password: form.password,
-      }, {
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCSRFToken(),
-        },
-        withCredentials: true,
-      });
-
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      localStorage.setItem("session_expires", response.data.session.expires_at.toString());
-      
-      navigate("/");
+      const success = await authService.login(form.email, form.password);
+      if (success) {
+        navigate("/dashboard");
+      } else {
+        setError("Invalid email or password");
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to sign in. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const getCSRFToken = (): string => {
-    return document.cookie
-      .split('; ')
-      .find(row => row.startsWith('csrftoken='))
-      ?.split('=')[1] || '';
   };
 
   return (
