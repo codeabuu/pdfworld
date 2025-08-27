@@ -100,7 +100,7 @@ def mynovels(request):
 
 
 @api_view(['GET'])
-@login_required
+# @login_required
 def book_detail(request, book_slug):
     """Enhanced book detail endpoint with safety checks"""
     try:
@@ -208,7 +208,6 @@ def extract_meta_refresh_url(html):
 
 
 @api_view(['POST'])
-@login_required
 def download_proxy(request):
     """
     Endpoint that:

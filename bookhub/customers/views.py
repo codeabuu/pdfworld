@@ -11,13 +11,19 @@ def me(request):
     
     # Try to get token from Authorization header first
     auth_header = request.headers.get("Authorization", "")
-    logger.info(f"Authorization header: {auth_header}")
+    token = None
     
     if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+        logger.info(f"JWT token from Authorization header (first 50 chars): {token[:50]}...")
+    else:
+        # Try to get token from httpOnly cookie
+        token = request.COOKIES.get("sb-access")  # or whatever your COOKIE_NAME is
+        if token:
+            logger.info(f"JWT token from cookie (first 50 chars): {token[:50]}...")
+    
+    if token:
         try:
-            token = auth_header.split(" ", 1)[1].strip()
-            logger.info(f"JWT token received (first 50 chars): {token[:50]}...")
-            
             decoded = verify_supabase_jwt(token)
             logger.info(f"Token decoded successfully: {decoded}")
             
@@ -25,14 +31,12 @@ def me(request):
             
         except jwt.InvalidTokenError as e:
             logger.error(f"JWT validation failed: {str(e)}")
-            # Don't pass silently - let's see what the error is
             return JsonResponse({"error": f"JWT validation failed: {str(e)}"}, status=401)
         except Exception as e:
             logger.error(f"Unexpected error during JWT verification: {str(e)}")
-            # Continue to check session authentication
     
-    # If no token or invalid token, check session authentication
-    logger.info("Checking session authentication...")
+    # If no token found, check session authentication as fallback
+    logger.info("No JWT token found, checking session authentication...")
     if hasattr(request, 'user') and request.user.is_authenticated:
         logger.info(f"Session user authenticated: {request.user.email}")
         return JsonResponse({

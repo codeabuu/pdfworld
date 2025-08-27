@@ -70,44 +70,32 @@ def login(request):
 
         supabase = get_supabase()
         
-        # Try this authentication method instead:
         try:
-            # Method 1: Using sign_in_with_password (recommended)
+            # Using sign_in_with_password (recommended)
             auth_response = supabase.auth.sign_in_with_password({
                 "email": email,
                 "password": password
             })
             
-            # Method 2: Alternative approach
-            # auth_response = supabase.auth.sign_in_with_credentials({
-            #     "email": email,
-            #     "password": password
-            # })
-            
             user = auth_response.user
             session = auth_response.session
             
+            # Create response with user info (no need to send tokens to frontend)
             response = JsonResponse({
                 "user": {
                     "id": user.id,
                     "email": user.email,
                 },
-                "session": {
-                    "access_token": session.access_token,
-                    "refresh_token": session.refresh_token,
-                    "expires_at": session.expires_at
-                }
+                "message": "Login successful"
             })
             
-            # Set cookies if needed
-            if session.access_token:
-                response.set_cookie(
-                    'sb-access-token', 
-                    session.access_token, 
-                    httponly=True, 
-                    samesite='Lax'
-                )
-                
+            # Use the consistent _set_session_cookies helper function
+            session_dict = {
+                "access_token": session.access_token,
+                "refresh_token": session.refresh_token
+            }
+            _set_session_cookies(response, session_dict)
+            
             return response
             
         except Exception as auth_error:
