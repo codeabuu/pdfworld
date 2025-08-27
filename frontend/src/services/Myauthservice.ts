@@ -13,19 +13,19 @@ axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 class AuthService {
   async checkAuth(): Promise<boolean> {
     try {
-    // Get token from memory or localStorage
-    const token = authToken || localStorage.getItem('auth_token');
+    // // // Get token from memory or localStorage
+    // // const token = authToken || localStorage.getItem('auth_token');
     
-    const config = token ? {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    } : {};
+    // // const config = token ? {
+    // //   headers: {
+    // //     'Authorization': `Bearer ${token}`
+    // //   }
+    // // } : {};
     
-    console.log('Checking auth with token:', token ? token.substring(0, 20) + '...' : 'No token');
+    // console.log('Checking auth with token:', token ? token.substring(0, 20) + '...' : 'No token');
 
-    const response = await axios.get(`${API_BASE_URL}/api/me/`, config);
-    console.log('Auth check successful:', response.data);
+    const response = await axios.get(`${API_BASE_URL}/api/me/`);
+    // console.log('Auth check successful:', response.data);
     return true;
   } catch (error: any) {
     console.error("Auth check failed:", error.response?.data || error.message);
@@ -41,14 +41,14 @@ async login(email: string, password: string): Promise<boolean> {
       password
     });
     
-    console.log('Login response:', response.data);
+    // console.log('Login response:', response.data);
     
     // Store the JWT token from the response
-    if (response.data.session?.access_token) {
-      authToken = response.data.session.access_token;
-      localStorage.setItem('auth_token', authToken);
-      console.log('JWT token stored:', authToken.substring(0, 20) + '...');
-    }
+    // if (response.data.session?.access_token) {
+    //   authToken = response.data.session.access_token;
+    //   localStorage.setItem('auth_token', authToken);
+    //   console.log('JWT token stored:', authToken.substring(0, 20) + '...');
+    // }
     
     return response.status === 200;
   } catch (error) {

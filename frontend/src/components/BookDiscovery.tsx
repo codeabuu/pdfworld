@@ -80,7 +80,7 @@ const BookDiscovery = () => {
   const handlePreviewClick = (book: any) => {
     const slug = book.link.split('/').filter(Boolean).pop();
     if (slug) {
-      navigate(`/book/${slug}`, {
+      navigate(`/dashboard/book/${slug}`, {
         state: { fromDiscovery: true, bookData: book }
       });
     }

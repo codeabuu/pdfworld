@@ -56,8 +56,8 @@ const Testimonials = () => {
   ];
 
   const stats = [
-    { number: "50K+", label: "Books Available", icon: "📚" },
-    { number: "10K+", label: "Happy Readers", icon: "😊" },
+    { number: "1,000,000+", label: "Books Available", icon: "📚" },
+    { number: "100K+", label: "Happy Readers", icon: "😊" },
     { number: "98.5%", label: "Satisfaction Rate", icon: "⭐" },
     { number: "24/7", label: "New Content Added", icon: "🔄" }
   ];
