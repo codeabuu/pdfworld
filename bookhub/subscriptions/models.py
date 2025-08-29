@@ -1,0 +1,78 @@
+from django.db import models
+from django.utils import timezone
+from datetime import timedelta
+
+def default_trial_end():
+    return timezone.now() + timedelta(days=7)
+
+class PaymentMethod(models.Model):
+    """
+    Stores Paystack payment authorization for a user
+    (verified card, not necessarily charged yet).
+    """
+    user_id = models.UUIDField()  # Supabase user.id
+    authorization_code = models.CharField(max_length=255, unique=True)
+    customer_code = models.CharField(max_length=100)
+    last4 = models.CharField(max_length=4, blank=True, null=True)
+    card_type = models.CharField(max_length=50, blank=True, null=True)
+    bank = models.CharField(max_length=100, blank=True, null=True)
+    exp_month = models.CharField(max_length=2, blank=True, null=True)
+    exp_year = models.CharField(max_length=4, blank=True, null=True)
+    reusable = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"PaymentMethod for {self.user_id} ({self.last4})"
+
+class Subscription(models.Model):
+    """
+    Represents a trial or paid subscription.
+    """
+    STATUS_CHOICES = [
+        ("trialing", "Trialing"),
+        ("active", "Active"),
+        ("past_due", "Past Due"),
+        ("canceled", "Canceled"),
+        ("inactive", "Inactive"),
+    ]
+
+    user_id = models.UUIDField()  # Supabase user.id
+    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, blank=True)
+
+    trial_start = models.DateTimeField(default=timezone.now)
+    trial_end = models.DateTimeField(default=default_trial_end)  # Changed from lambda to function reference
+    trial_used = models.BooleanField(default=False)  # Track if trial was used
+    trial_started_at = models.DateTimeField(null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="trialing")
+
+    current_period_start = models.DateTimeField(default=timezone.now)
+    current_period_end = models.DateTimeField(null=True, blank=True)  # set when subscription becomes active
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)  # Fixed typo: DateTiazmeField → DateTimeField
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user_id', 'status']),
+            models.Index(fields=['user_id', 'trial_used']),
+        ]
+
+    def in_trial(self):
+        return self.status == "trialing" and timezone.now() < self.trial_end
+
+    def trial_has_ended(self):
+        return timezone.now() >= self.trial_end
+    
+    def can_start_trial(self):
+        """Check if user is eligible for a free trial"""
+        if self.trial_used:
+            return False, "Trial already used"
+        
+        if self.status in ["active", "trialing"]:
+            return False, "Already have an active subscription"
+            
+        return True, "Eligible for trial"
+
+    def __str__(self):
+        return f"Subscription for {self.user_id} ({self.status})"

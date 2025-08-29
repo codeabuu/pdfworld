@@ -7,9 +7,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download_temp')
 SECRET_KEY = config('DJANGO_SECRET_KEY')
 
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
+PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')
+
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "af402b4a2dd7.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
@@ -32,6 +35,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     "http://localhost:3000",
+    "https://af402b4a2dd7.ngrok-free.app",
 ]
 
 # For session cookies
@@ -61,6 +65,7 @@ INSTALLED_APPS = [
     'corsheaders',  # Make sure this is included
     'scraper',
     'customers',
+    'subscriptions',
 ]
 
 # MIDDLEWARE - MOVE CORS MIDDLEWARE TO TOP
