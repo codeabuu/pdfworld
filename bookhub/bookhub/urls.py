@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.urls import path
 from customers.views import me
 from customers.auth_views import signup, login, logout
-from subscriptions.views import paystack_webhook, start_trial, verify_card, payment_callback, check_trial_eligibility
+from subscriptions.views import paystack_webhook, start_trial, payment_callback, check_trial_eligibility_endpoint, check_subscription_status
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,9 +26,9 @@ urlpatterns = [
     path('api/login/', login, name='login'),
     path('api/logout/', logout, name='logout'),
 
-    path('api/check-trial-eligibility/', check_trial_eligibility, name='check_trial_eligibility'),
+    path('api/check-trial-eligibility/', check_trial_eligibility_endpoint, name='check_trial_eligibility'),
     path('api/paystack-webhook/', paystack_webhook, name='paystack_webhook'),
     path("api/sub-starttrial/", start_trial, name="sub_start"),
-    path("api/sub-verify/", verify_card, name="sub_verify"),
-    path('api/payment-callback/', payment_callback, name='payment_callback')
+    path("api/check-subscription/", check_subscription_status, name="check_subscription"),
+    path('api/payment-callback/', payment_callback, name='payment_callback'),
 ]

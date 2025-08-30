@@ -318,3 +318,42 @@ def payment_callback(request):
             "status": "failed",
             "gateway_response": tx_data.get("gateway_response")
         })
+    
+
+
+@csrf_exempt
+@require_POST
+def check_subscription_status(request):
+    """Check if user has an active subscription/trial"""
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        
+        if not user_id:
+            return JsonResponse({"error": "user_id required"}, status=400)
+        
+        # Get active subscription
+        active_sub = Subscription.objects.filter(
+            user_id=user_id, 
+            status__in=["active", "trialing"]
+        ).first()
+        
+        if active_sub:
+            return JsonResponse({
+                "has_access": True,
+                "status": active_sub.status,
+                "trial_end": active_sub.trial_end.isoformat() if active_sub.trial_end else None,
+                "in_trial": active_sub.in_trial(),
+                "trial_has_ended": active_sub.trial_has_ended()
+            })
+        else:
+            return JsonResponse({
+                "has_access": False,
+                "status": "no_subscription",
+                "message": "No active subscription found"
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Internal server error"}, status=500)
