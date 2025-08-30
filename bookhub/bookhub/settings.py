@@ -12,7 +12,7 @@ PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "af402b4a2dd7.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "6a5884265e7e.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
@@ -30,12 +30,14 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+LIVE_URL = config('LIVE_URL', default=None)
+
 # CSRF Configuration - ADD THIS:
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     "http://localhost:3000",
-    "https://af402b4a2dd7.ngrok-free.app",
+    LIVE_URL
 ]
 
 # For session cookies
