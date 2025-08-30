@@ -82,3 +82,22 @@ export const getGenreBooks = async (genreSlug: string, page: number = 1) => {
     throw error;
   }
 };
+
+export const getPopularGenres = async (): Promise<{
+  source: string;
+  count: number;
+  results: Array<{
+    name: string;
+    slug: string;
+    url: string;
+    book_count: number;
+  }>;
+}> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}api/genres/popular/`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch popular genres:', error);
+    throw error;
+  }
+};

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Heart, BookOpen, TrendingUp, Clock, Users, Newspaper } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getNewReleases, getMagazines } from "@/lib/api";
+import { getNewReleases, getMagazines, getPopularGenres } from "@/lib/api";
 import { getHighQualityImage } from "@/lib/utils";
 
 interface Book {
@@ -23,15 +23,25 @@ interface Magazine {
   category: string;
 }
 
+interface Genre {
+  name: string;
+  slug: string;
+  url: string;
+  book_count: number;
+}
+
 const BookDiscovery = () => {
-  const [activeGenre, setActiveGenre] = useState("All");
+  const [activeGenre, setActiveGenre] = useState<string | null>(null);
   const [featuredBooks, setFeaturedBooks] = useState<any[]>([]);
   const [magazines, setMagazines] = useState<Magazine[]>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [magazinesLoading, setMagazinesLoading] = useState(true);
+  const [genresLoading, setGenresLoading] = useState(true);
   const navigate = useNavigate();
 
-  const genres = [
+  // Default genres as fallback
+  const defaultGenres = [
     { name: "All", color: "bg-primary", icon: BookOpen },
     { name: "Fantasy", color: "bg-purple-500", icon: Star },
     { name: "Romance", color: "bg-pink-500", icon: Heart },
@@ -40,37 +50,139 @@ const BookDiscovery = () => {
     { name: "Biography", color: "bg-green-500", icon: Users },
   ];
 
+  // Get genre icon based on name
+  const getGenreIcon = (genreName: string) => {
+    const genreMap: { [key: string]: any } = {
+      'Fiction': BookOpen,
+      'Romance': Heart,
+      'Nonfiction': Newspaper,
+      'Fantasy': Star,
+      'Contemporary': TrendingUp,
+      'Mystery': Clock,
+      'Thriller': Clock,
+      'Biography': Users,
+      'Science Fiction': TrendingUp,
+      'Historical': Clock,
+      'Young Adult': Users,
+      'Horror': Clock,
+      'Adventure': TrendingUp,
+      'Psychology': Users,
+      'Self Help': Users,
+      'Business': TrendingUp,
+      'Health': Users,
+      'Cooking': Heart,
+      'Art': Star,
+      'All': BookOpen
+    };
+    
+    return genreMap[genreName] || BookOpen;
+  };
+
+  // Get genre color based on name
+  const getGenreColor = (genreName: string) => {
+    const colorMap: { [key: string]: string } = {
+      'Fiction': 'bg-primary',
+      'Romance': 'bg-pink-500',
+      'Nonfiction': 'bg-blue-500',
+      'Fantasy': 'bg-purple-500',
+      'Contemporary': 'bg-green-500',
+      'Mystery': 'bg-gray-600',
+      'Thriller': 'bg-red-500',
+      'Biography': 'bg-amber-500',
+      'Science Fiction': 'bg-indigo-500',
+      'Historical': 'bg-yellow-500',
+      'Young Adult': 'bg-teal-500',
+      'Horror': 'bg-red-600',
+      'Adventure': 'bg-orange-500',
+      'Psychology': 'bg-pink-400',
+      'Self Help': 'bg-emerald-500',
+      'Business': 'bg-blue-600',
+      'Health': 'bg-green-400',
+      'Cooking': 'bg-red-400',
+      'Art': 'bg-purple-400',
+      'All': 'bg-primary'
+    };
+    
+    return colorMap[genreName] || 'bg-primary';
+  };
+
+  const handleGenreSelect = (genre: Genre | string) => {
+    if (typeof genre === 'string' && genre === "All") {
+      // Handle "All" genre - redirect to main genres page
+      setActiveGenre("All");
+      navigate(`/dashboard/genres?page=1`);
+      return;
+    }
+    
+    const genreSlug = typeof genre === 'object' ? genre.slug : genre.toLowerCase().replace(/\s+/g, '-');
+    const genreName = typeof genre === 'object' ? genre.name : genre;
+    
+    setActiveGenre(genreName);
+    navigate(`/dashboard/genres?genre=${genreSlug}&page=1`);
+  };
+
+  const handlePageChange = async (page: number) => {
+    if (activeGenre && activeGenre !== "All" && page >= 1) {
+      const selectedGenre = genres.find(g => g.name === activeGenre) || 
+                           defaultGenres.find(g => g.name === activeGenre);
+      
+      if (selectedGenre) {
+        const genreSlug = typeof selectedGenre === 'object' && 'slug' in selectedGenre 
+          ? selectedGenre.slug 
+          : selectedGenre.name.toLowerCase().replace(/\s+/g, '-');
+        
+        navigate(`/dashboard/genres?genre=${genreSlug}&page=${page}`, { replace: false });
+      }
+    } else if (activeGenre === "All" && page >= 1) {
+      navigate(`/dashboard/genres?page=${page}`, { replace: false });
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [releasesResponse, magazinesResponse] = await Promise.all([
+        const [releasesResponse, magazinesResponse, genresResponse] = await Promise.allSettled([
           getNewReleases(),
-          getMagazines()
+          getMagazines(),
+          getPopularGenres()
         ]);
 
         // Process books
-        const topBooks = releasesResponse.results.slice(0, 4).map((book: Book, index: number) => ({
-          id: index + 1,
-          title: book.title,
-          author: book.author || "Unknown Author",
-          image: book.image,
-          rating: (Math.random() * (5 - 4.4) + 4.4).toFixed(1),
-          genre: ["Fantasy", "Sci-Fi", "Mystery", "Romance", "Thriller", "Biography"][Math.floor(Math.random() * 6)],
-          isNew: true,
-          readers: `${Math.floor(Math.random() * 20) + 5}K`,
-          link: book.link
-        }));
+        if (releasesResponse.status === 'fulfilled') {
+          const topBooks = releasesResponse.value.results.slice(0, 4).map((book: Book, index: number) => ({
+            id: index + 1,
+            title: book.title,
+            author: book.author || "Unknown Author",
+            image: book.image,
+            rating: (Math.random() * (5 - 4.4) + 4.4).toFixed(1),
+            genre: ["Fantasy", "Sci-Fi", "Mystery", "Romance", "Thriller", "Biography"][Math.floor(Math.random() * 6)],
+            isNew: true,
+            readers: `${Math.floor(Math.random() * 20) + 5}K`,
+            link: book.link
+          }));
+          setFeaturedBooks(topBooks);
+        }
 
         // Process magazines
-        const featuredMagazines = magazinesResponse.results.slice(0, 4);
+        if (magazinesResponse.status === 'fulfilled') {
+          const featuredMagazines = magazinesResponse.value.results.slice(0, 4);
+          setMagazines(featuredMagazines);
+        }
 
-        setFeaturedBooks(topBooks);
-        setMagazines(featuredMagazines);
+        // Process genres - take top 8 from API or use defaults
+        if (genresResponse.status === 'fulfilled') {
+          const apiGenres = genresResponse.value.results.slice(0, 8);
+          setGenres(apiGenres);
+        } else {
+          console.error("Failed to fetch genres, using defaults:", genresResponse.reason);
+        }
+
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
         setMagazinesLoading(false);
+        setGenresLoading(false);
       }
     };
 
@@ -133,27 +245,63 @@ const BookDiscovery = () => {
         <div id="genres" className="mb-8 sm:mb-12">
           <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-foreground">Popular Genres 🔥</h3>
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            {genres.map((genre) => {
-              const IconComponent = genre.icon;
+            {/* "All" genre button */}
+            <Button
+              key="All"
+              variant={activeGenre === "All" ? "default" : "outline"}
+              size="sm"
+              className={`h-10 sm:h-12 px-4 sm:px-6 rounded-full transition-all duration-300 hover-lift text-xs sm:text-sm ${
+                activeGenre === "All"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "hover:bg-secondary"
+              }`}
+              onClick={() => handleGenreSelect("All")}
+            >
+              <BookOpen className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              All Genres
+            </Button>
+
+            {/* Show genres from API or defaults */}
+            {(genres.length > 0 ? genres : defaultGenres.slice(1)).map((genre) => {
+              const genreName = typeof genre === 'object' ? genre.name : genre;
+              const IconComponent = getGenreIcon(genreName);
+              const colorClass = getGenreColor(genreName);
+              
               return (
                 <Button
-                  key={genre.name}
-                  variant={activeGenre === genre.name ? "default" : "outline"}
+                  key={genreName}
+                  variant={activeGenre === genreName ? "default" : "outline"}
                   size="sm"
                   className={`h-10 sm:h-12 px-4 sm:px-6 rounded-full transition-all duration-300 hover-lift text-xs sm:text-sm ${
-                    activeGenre === genre.name
-                      ? "bg-primary text-primary-foreground shadow-lg"
+                    activeGenre === genreName
+                      ? `${colorClass} text-white shadow-lg`
                       : "hover:bg-secondary"
                   }`}
-                  onClick={() => setActiveGenre(genre.name)}
+                  onClick={() => handleGenreSelect(genre)}
                 >
                   <IconComponent className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  {genre.name}
+                  {genreName}
                 </Button>
               );
             })}
           </div>
         </div>
+
+        {/* Show book count for selected genre (except "All") */}
+        {activeGenre && activeGenre !== "All" && (
+          <div className="mb-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {genres.find(g => g.name === activeGenre)?.book_count.toLocaleString() || 'Thousands'} books available in {activeGenre}
+            </p>
+            <Button 
+              variant="link" 
+              className="text-primary hover:text-primary/80 text-sm mt-2"
+              onClick={() => handlePageChange(1)}
+            >
+              Browse all {activeGenre} books →
+            </Button>
+          </div>
+        )}
 
         {/* Featured New Releases */}
         <div className="mb-12 sm:mb-16">
