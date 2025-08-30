@@ -87,7 +87,7 @@ const BookDiscovery = () => {
   };
 
   const handleMagazineClick = (magazine: Magazine) => {
-    navigate(`/magazine/${magazine.id}`, {
+    navigate(`/magazines`, {
       state: { magazineData: magazine }
     });
   };
@@ -131,7 +131,7 @@ const BookDiscovery = () => {
 
         {/* Genre Filter - Mobile responsive */}
         <div id="genres" className="mb-8 sm:mb-12">
-          <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-foreground">Browse by Genre</h3>
+          <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-foreground">Popular Genres 🔥</h3>
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {genres.map((genre) => {
               const IconComponent = genre.icon;

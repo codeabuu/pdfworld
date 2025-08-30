@@ -126,7 +126,7 @@ const Dashboard = ({ children }: DashboardProps) => {
   };
 
   const handleMagazineClick = (magazine: Magazine) => {
-    navigate(`/magazine/${magazine.id}`);
+    navigate(`/magazines`);
     setIsMobileMenuOpen(false);
   };
 

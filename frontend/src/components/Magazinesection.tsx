@@ -26,7 +26,7 @@ export const MagazinesSection = ({
           <BookOpen className="h-5 w-5 text-amber-600" />
           <h2 className="text-2xl font-semibold text-foreground">Latest Magazines</h2>
         </div>
-        <Link to="/dashboard/magazines">
+        <Link to="/magazines">  {/* ← Changed from /dashboard/magazines to /magazines */}
           <Button variant="outline" className="gap-1 text-sm" size="sm">
             View All
             <ArrowRight className="h-3 w-3" />

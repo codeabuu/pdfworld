@@ -387,7 +387,7 @@ const Dashboard = () => {
   };
 
   const handleMagazineClick = (magazine: Magazine) => {
-    navigate(`/magazine/${magazine.id}`);
+    navigate(`/magazine`);
   };
 
   const handleClearSearch = () => {

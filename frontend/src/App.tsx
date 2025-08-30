@@ -13,6 +13,7 @@ import Login from "./components/Login.tsx";
 import Signup from "./components/Signup.tsx";
 import Dashboard from "./components/Dashboard.tsx";
 import ProtectedRoute from "./components/Protectedroute.tsx";
+import StartTrial from "./components/Starttrial.tsx";
 
 const queryClient = new QueryClient();
 
@@ -39,10 +40,11 @@ const App = () => (
           <Route path="/genres" element={<Genres />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/start-trial" element={<StartTrial />} />
           
           {/* Protected Dashboard Routes */}
           <Route path="/dashboard" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireSubscription={true}>
               <DashboardLayout />
             </ProtectedRoute>
           }>

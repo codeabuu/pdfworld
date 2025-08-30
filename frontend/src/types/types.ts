@@ -51,6 +51,7 @@ export interface Magazine {
   issue: string;
   date: string;
   category: string;
+  fileUrl: string;
 }
 
 export interface SearchResult {
@@ -58,6 +59,8 @@ export interface SearchResult {
   author: string;
   link: string;
   image: string;
+  category: string;
+
 }
 
 export interface LoadingState {

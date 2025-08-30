@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Lock, Mail, ArrowLeft, Eye, EyeOff, Stars } from "lucide-react";
 import { authService } from "@/services/Myauthservice";
+import { subscriptionService } from "@/services/subservice";
 
 interface LoginForm {
   email: string;
@@ -71,29 +72,46 @@ const Login = () => {
     if (error) setError(null);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  // Login.tsx - Update the handleLogin function
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError(null);
 
-    if (!validateForm()) {
-      return;
-    }
+  if (!validateForm()) {
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const success = await authService.login(form.email, form.password);
-      if (success) {
+  try {
+    const { success, userId } = await authService.login(form.email, form.password);
+    
+    if (success && userId) {
+      // Check subscription status after successful login
+      try {
+        const subscriptionStatus = await subscriptionService.checkSubscriptionStatus(userId);
+        
+        if (subscriptionStatus.has_access) {
+          // User has access - redirect to dashboard
+          navigate("/dashboard");
+        } else {
+          // No subscription - redirect to trial page
+          navigate("/start-trial");
+        }
+      } catch (subError) {
+        console.error('Subscription check failed:', subError);
+        // Fallback - redirect to dashboard and let it handle access control
         navigate("/dashboard");
-      } else {
-        setError("Invalid email or password");
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to sign in. Please try again.");
-    } finally {
-      setLoading(false);
+    } else {
+      setError("Invalid email or password");
     }
-  };
+  } catch (err: any) {
+    setError(err.response?.data?.error || "Failed to sign in. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 relative overflow-hidden">
