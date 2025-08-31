@@ -101,3 +101,19 @@ export const getPopularGenres = async (): Promise<{
     throw error;
   }
 };
+
+// lib/api.ts - Add this function
+export const getSubscriptionStatus = async (): Promise<{
+  status: string;
+  current_period_end?: string;
+  plan_name?: string;
+  trial_end?: string;
+}> => {
+  try {
+    const response = await axios.get('/api/check-subscription/');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch subscription status:', error);
+    throw error;
+  }
+};

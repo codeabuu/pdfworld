@@ -14,6 +14,8 @@ import Signup from "./components/Signup.tsx";
 import Dashboard from "./components/Dashboard.tsx";
 import ProtectedRoute from "./components/Protectedroute.tsx";
 import StartTrial from "./components/Starttrial.tsx";
+import profile from "./components/Profile.tsx";
+import Profile from "./components/Profile.tsx";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +35,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/testprofile" element={<Profile />} />
           <Route path="/" element={<Index />} />
           <Route path="/search" element={<Index />} />
           <Route path="/releases" element={<Releases />} />
