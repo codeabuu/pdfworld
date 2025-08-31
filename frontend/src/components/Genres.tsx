@@ -1,7 +1,7 @@
 // Genres.tsx
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getGenres, getGenreBooks } from "@/lib/api";
+import { getGenres, getGenreBooks, getPopularGenres } from "@/lib/api"; // Add getPopularGenres import
 import GenreBooks from "./GenreBooks";
 import GenresList from "./GenresList";
 import { Genre, GenreBook } from "@/types/types";
@@ -9,6 +9,7 @@ import { Loader } from "lucide-react";
 
 const Genres = () => {
   const [genres, setGenres] = useState<Genre[]>([]);
+  const [popularGenres, setPopularGenres] = useState<Genre[]>([]); // Add state for popular genres
   const [selectedGenre, setSelectedGenre] = useState<Genre | null>(null);
   const [genreBooks, setGenreBooks] = useState<GenreBook[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,20 +29,45 @@ const Genres = () => {
     return { genreSlug, page };
   };
 
-  
-  
-  // Fetch all genres on component mount
+  // Fetch all genres and popular genres on component mount
   useEffect(() => {
     const fetchGenres = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await getGenres();
-        setGenres(response.results);
-        
+        // Fetch both regular genres and popular genres
+        const [regularGenresResponse, popularGenresResponse] = await Promise.allSettled([
+          getGenres(),
+          getPopularGenres()
+        ]);
+
+        let allGenres: Genre[] = [];
+        let popularGenresData: Genre[] = [];
+
+        // Process regular genres
+        if (regularGenresResponse.status === 'fulfilled') {
+          allGenres = regularGenresResponse.value.results;
+        }
+
+        // Process popular genres
+        if (popularGenresResponse.status === 'fulfilled') {
+          // Map the API response to match your Genre type
+          popularGenresData = popularGenresResponse.value.results.map(apiGenre => ({
+            id: apiGenre.slug, // Use slug as ID
+            name: apiGenre.name,
+            slug: apiGenre.slug,
+            book_count: apiGenre.book_count,
+            // Add any other required properties from your Genre type
+          }));
+        }
+
+        setGenres(allGenres);
+        setPopularGenres(popularGenresData);
+
         const { genreSlug, page } = getUrlParams();
         if (genreSlug) {
-          const genre = response.results.find(g => g.slug === genreSlug);
+          // Check both regular and popular genres
+          const genre = [...allGenres, ...popularGenresData].find(g => g.slug === genreSlug);
           if (genre) {
             setSelectedGenre(genre);
             loadGenreBooks(genre, page);
@@ -63,34 +89,25 @@ const Genres = () => {
     const { genreSlug, page } = getUrlParams();
     
     if (genreSlug) {
-      // Only process if genres are loaded
-      if (genres.length > 0) {
-        const genre = genres.find(g => g.slug === genreSlug);
-        if (genre) {
-          // console.log('Found genre:', genre.name);
-          if (selectedGenre?.slug === genreSlug) {
-            // console.log('Same genre, loading page:', page);
-            loadGenreBooks(genre, page);
-          } else {
-            // console.log('New genre, setting and loading:', genre.name);
-            setSelectedGenre(genre);
-            loadGenreBooks(genre, page);
-          }
+      // Check both regular and popular genres
+      const genre = [...genres, ...popularGenres].find(g => g.slug === genreSlug);
+      if (genre) {
+        if (selectedGenre?.slug === genreSlug) {
+          loadGenreBooks(genre, page);
         } else {
-          // console.log('Genre not found in list:', genreSlug);
-          setSelectedGenre(null);
-          setGenreBooks([]);
+          setSelectedGenre(genre);
+          loadGenreBooks(genre, page);
         }
       } else {
-        // console.log('Genres not loaded yet, skipping URL processing');
+        setSelectedGenre(null);
+        setGenreBooks([]);
       }
     } else {
-      // console.log('No genre in URL, clearing selection');
       setSelectedGenre(null);
       setGenreBooks([]);
       setCurrentPage(1);
     }
-  }, [location.search]); 
+  }, [location.search, genres, popularGenres]); 
 
   const loadGenreBooks = async (genre: Genre, page: number = 1) => {
     if (selectedGenre?.slug === genre.slug && currentPage === page && genreBooks.length > 0) {
@@ -122,7 +139,6 @@ const Genres = () => {
 
   const handlePageChange = async (page: number) => {
     if (selectedGenre && page >= 1) {
-        // console.log("Navigating to:", `/genres?genre=${selectedGenre.slug}&page=${page}`);
       navigate(`/genres?genre=${selectedGenre.slug}&page=${page}`, { replace: false });
     }
   };
@@ -148,7 +164,6 @@ const Genres = () => {
   const handleNavigateBack = () => {
     navigate(-1);
   };
-
 
   return (
     <section className="section-padding bg-background min-h-screen">
@@ -182,6 +197,7 @@ const Genres = () => {
         ) : (
           <GenresList
             genres={genres}
+            popularGenres={popularGenres} // Pass popular genres
             loading={loading}
             onGenreSelect={handleGenreSelect}
             onNavigateBack={handleNavigateBack}

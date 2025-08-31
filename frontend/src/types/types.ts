@@ -37,12 +37,12 @@ export interface Book {
   date?: string;
 }
 
-export interface Genre {
-  id: number;
-  name: string;
-  count: number;
-  color?: string;
-}
+// export interface Genre {
+//   id: number;
+//   name: string;
+//   count: number;
+//   color?: string;
+// }
 
 export interface Magazine {
   id: number;
