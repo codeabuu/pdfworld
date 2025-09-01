@@ -1,15 +1,23 @@
 // Dashboard.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
   Star, 
   Users,
   Library,
   Menu,
-  X
+  X,
+  User,
+  Crown,
+  LogOut,
+  CreditCard,
+  ChevronDown,
+  Settings,
+  HelpCircle
 } from "lucide-react";
 import { getNewReleases, getGenres, getMagazines, searchBooks } from "@/lib/api";
 import { 
@@ -24,10 +32,29 @@ import { GenresSection} from "./Genressection";
 import { MagazinesSection } from "./Magazinesection";
 import { SearchResults } from "./Searchresults";
 import { renderLoadingSkeleton, navItems, getHighQualityImage } from "@/lib/utils";
+import { authService } from "@/services/Myauthservice";
+import { subscriptionService } from "@/services/subservice";
+import axios from "axios";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 interface DashboardProps {
   children?: React.ReactNode;
+}
+
+interface UserData {
+  id: string;
+  email: string;
+  created_at?: string;
+}
+
+interface Subscription {
+  has_access: boolean;
+  status: string;
+  trial_end?: string;
+  in_trial?: boolean;
+  trial_has_ended?: boolean;
+  message?: string;
 }
 
 const Dashboard = ({ children }: DashboardProps) => {
@@ -48,12 +75,17 @@ const Dashboard = ({ children }: DashboardProps) => {
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const isSearchMode = queryParams.has("q");
   const isDashboardHome = location.pathname === '/dashboard';
 
   useEffect(() => {
     fetchDashboardData();
+    fetchUserData();
     if (queryParams.has("q")) {
       handleSearchResults(queryParams.get("q") || "");
     }
@@ -64,6 +96,17 @@ const Dashboard = ({ children }: DashboardProps) => {
       handleSearchResults(searchQuery);
     }
   }, [searchQuery, isSearchMode]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -87,6 +130,42 @@ const Dashboard = ({ children }: DashboardProps) => {
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
       setLoading({ newReleases: false, genres: false, magazines: false });
+    }
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const isAuth = await authService.checkAuth();
+      if (!isAuth) return;
+
+      const userId = authService.getUserId();
+      if (!userId) return;
+
+      // Fetch user email from /api/me/
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/me/`);
+        const userData = response.data.user || response.data;
+        const userEmail = userData.email || "Unknown";
+        
+        setUser({
+          id: userId,
+          email: userEmail,
+          created_at: userData.created_at
+        });
+
+        // Fetch subscription status
+        const subscriptionData = await subscriptionService.checkSubscriptionStatus(userId);
+        setSubscription(subscriptionData);
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+        setUser({
+          id: userId,
+          email: "Unknown",
+          created_at: undefined
+        });
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error);
     }
   };
 
@@ -143,6 +222,31 @@ const Dashboard = ({ children }: DashboardProps) => {
     setIsMobileMenuOpen(false);
   };
 
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      navigate("/login");
+      setIsProfileDropdownOpen(false);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  const getPlanBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-green-600 text-xs">Active</Badge>;
+      case "trialing":
+        return <Badge className="bg-blue-600 text-xs">Free Trial</Badge>;
+      case "past_due":
+        return <Badge className="bg-amber-600 text-xs">Past Due</Badge>;
+      case "canceled":
+        return <Badge variant="outline" className="text-xs">Canceled</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">Inactive</Badge>;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Elegant Header */}
@@ -159,6 +263,112 @@ const Dashboard = ({ children }: DashboardProps) => {
               Discover endless stories, explore diverse knowledge, and embark on new reading adventures
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Profile Dropdown - Made Sticky */}
+      <div className="hidden sm:block fixed top-4 right-4 z-50" ref={profileDropdownRef}>
+        <div className="relative">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-amber-50 bg-white shadow-md border border-gray-200"
+            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+          >
+            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-amber-600" />
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </Button>
+
+          {isProfileDropdownOpen && (
+            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              {/* User Info Section */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                    <User className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {user?.email || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {subscription ? (
+                        <span className="flex items-center gap-1">
+                          {getPlanBadge(subscription.status)}
+                          {subscription.status === "trialing" && "Trial"}
+                        </span>
+                      ) : (
+                        "Free Plan"
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subscription Section */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-foreground">Subscription</span>
+                  {subscription && getPlanBadge(subscription.status)}
+                </div>
+                
+                {subscription?.status === "trialing" && subscription.trial_end && (
+                  <p className="text-xs text-muted-foreground">
+                    Trial ends: {new Date(subscription.trial_end).toLocaleDateString()}
+                  </p>
+                )}
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2 text-xs"
+                  onClick={() => {
+                    navigate("/subscription");
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <CreditCard className="h-3 w-3 mr-2" />
+                  Manage Subscription
+                </Button>
+              </div>
+
+              {/* Settings Links */}
+              <div className="px-4 py-2 border-b border-gray-100">
+                <button
+                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
+                  onClick={() => {
+                    navigate("/testprofile");
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Profile & Settings
+                </button>
+                
+                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  Settings
+                </button>
+                
+                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                  Help & FAQ
+                </button>
+              </div>
+
+              {/* Logout Section */}
+              <div className="px-4 py-2">
+                <button
+                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Log out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -249,7 +459,7 @@ const Dashboard = ({ children }: DashboardProps) => {
         </div>
       )}
 
-      {/* Desktop Navigation & Search */}
+      {/* Desktop Navigation & Search - Made Sticky */}
       <div className="hidden sm:block sticky top-0 z-40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
         <div className="container-custom">
           {/* Quick Navigation */}
@@ -311,8 +521,27 @@ const Dashboard = ({ children }: DashboardProps) => {
         </div>
       </div>
 
+      {/* Mobile Profile Button - Made Sticky */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40">
+        <Button
+          variant="outline"
+          className="w-full justify-between bg-white shadow-md"
+          onClick={() => navigate("/profile")}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-amber-600" />
+            </div>
+            <span className="text-sm font-medium">
+              {user?.email?.split('@')[0] || "Profile"}
+            </span>
+          </div>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </div>
+
       {/* Main Content */}
-      <div className={`${isMobileMenuOpen ? 'opacity-50' : ''} transition-opacity duration-200`}>
+      <div className={`${isMobileMenuOpen ? 'opacity-50' : ''} transition-opacity duration-200 pb-16 sm:pb-0`}>
         {/* Conditionally render search results or dashboard content */}
         {isSearchMode ? (
           <div className="container-custom py-4 md:py-6">

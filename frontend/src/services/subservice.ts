@@ -13,9 +13,19 @@ class SubscriptionService {
     message?: string;
   }> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/check-subscription/`, {
-        user_id: userId
-      });
+      const requestData = { user_id: userId };
+      console.log("Request data:", requestData);
+      
+      const response = await axios.post(`${API_BASE_URL}/api/check-subscription/`, 
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      console.log("Subscription response:", response.data);
       
       return response.data;
     } catch (error: any) {

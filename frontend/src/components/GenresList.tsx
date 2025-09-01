@@ -1,16 +1,17 @@
 // GenresList.tsx
 import { Button } from "@/components/ui/button";
-import { Library } from "lucide-react";
+import { Library, TrendingUp } from "lucide-react"; // Add TrendingUp icon
 import { Genre } from "@/types/types";
 
 interface GenresListProps {
   genres: Genre[];
+  popularGenres: Genre[]; // Add popularGenres prop
   loading: boolean;
   onGenreSelect: (genre: Genre) => void;
   onNavigateBack: () => void;
 }
 
-const GenresList = ({ genres, loading, onGenreSelect, onNavigateBack }: GenresListProps) => {
+const GenresList = ({ genres, popularGenres, loading, onGenreSelect, onNavigateBack }: GenresListProps) => {
   
   const renderGenreSkeletons = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -29,8 +30,13 @@ const GenresList = ({ genres, loading, onGenreSelect, onNavigateBack }: GenresLi
     </div>
   );
 
+  // Filter out popular genres from the main list to avoid duplicates
+  const regularGenres = genres.filter(genre => 
+    !popularGenres.some(popular => popular.slug === genre.slug)
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-bold text-foreground">Browse Genres</h1>
@@ -42,51 +48,102 @@ const GenresList = ({ genres, loading, onGenreSelect, onNavigateBack }: GenresLi
       {/* Subtitle */}
       <div className="text-center">
         <p className="text-muted-foreground text-lg">
-          Discover books from {genres.length} different genres
+          Discover books from {regularGenres.length + popularGenres.length} different genres
         </p>
       </div>
 
-      {/* Genres Grid */}
-      {loading ? (
-        renderGenreSkeletons()
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {genres.map((genre) => (
-            <div
-              key={genre.slug}
-              className="bg-card rounded-lg border border-border overflow-hidden group hover:shadow-lg transition-all duration-300 cursor-pointer"
-              onClick={() => onGenreSelect(genre)}
-            >
-              {/* Genre Card */}
-              <div className="h-40 relative bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center">
-                <Library className="h-12 w-12 text-primary" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-              </div>
+      {/* Popular Genres Section */}
+      {popularGenres.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="h-6 w-6 text-amber-600" />
+            <h2 className="text-2xl font-bold text-foreground">Popular Genres</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {popularGenres.map((genre) => (
+              <div
+                key={genre.slug}
+                className="bg-card rounded-lg border-2 border-amber-200 overflow-hidden group hover:shadow-lg hover:border-amber-300 transition-all duration-300 cursor-pointer"
+                onClick={() => onGenreSelect(genre)}
+              >
+                {/* Genre Card */}
+                <div className="h-40 relative bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
+                  <Library className="h-12 w-12 text-amber-600" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                </div>
 
-              {/* Genre Info */}
-              <div className="p-4 space-y-3">
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                  {genre.name}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {genre.book_count.toLocaleString()} books
-                </p>
+                {/* Genre Info */}
+                <div className="p-4 space-y-3">
+                  <h3 className="font-semibold text-foreground group-hover:text-amber-700 transition-colors line-clamp-2">
+                    {genre.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {genre.book_count.toLocaleString()} books
+                  </p>
 
-                <Button
-                  variant="secondary"
-                  className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onGenreSelect(genre);
-                  }}
-                >
-                  Browse Books
-                </Button>
+                  <Button
+                    variant="default"
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onGenreSelect(genre);
+                    }}
+                  >
+                    Browse Books
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
+
+      {/* All Genres Section */}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-foreground">All Genres</h2>
+        
+        {loading ? (
+          renderGenreSkeletons()
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {regularGenres.map((genre) => (
+              <div
+                key={genre.slug}
+                className="bg-card rounded-lg border border-border overflow-hidden group hover:shadow-lg transition-all duration-300 cursor-pointer"
+                onClick={() => onGenreSelect(genre)}
+              >
+                {/* Genre Card */}
+                <div className="h-40 relative bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center">
+                  <Library className="h-12 w-12 text-primary" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                </div>
+
+                {/* Genre Info */}
+                <div className="p-4 space-y-3">
+                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    {genre.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {genre.book_count.toLocaleString()} books
+                  </p>
+
+                  <Button
+                    variant="secondary"
+                    className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onGenreSelect(genre);
+                    }}
+                  >
+                    Browse Books
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
