@@ -28,6 +28,12 @@ class Subscription(models.Model):
     """
     Represents a trial or paid subscription.
     """
+    PLAN_CHOICES = [
+        ("trial", "Free Trial"),
+        ("monthly", "Monthly"),
+        ("yearly", "Yearly"),
+    ]
+
     STATUS_CHOICES = [
         ("trialing", "Trialing"),
         ("active", "Active"),
@@ -39,8 +45,12 @@ class Subscription(models.Model):
     user_id = models.UUIDField()  # Supabase user.id
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, blank=True)
 
-    trial_start = models.DateTimeField(default=timezone.now)
-    trial_end = models.DateTimeField(default=default_trial_end)  # Changed from lambda to function reference
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default="trial")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # in dollars
+    subscription_code = models.CharField(max_length=100, blank=True, null=True)
+
+    trial_start = models.DateTimeField(null=True, blank=True, default=timezone.now)
+    trial_end = models.DateTimeField(null=True, blank=True, default=default_trial_end)  # Changed from lambda to function reference
     trial_used = models.BooleanField(default=False)  # Track if trial was used
     trial_started_at = models.DateTimeField(null=True, blank=True)
 
@@ -50,12 +60,13 @@ class Subscription(models.Model):
     current_period_end = models.DateTimeField(null=True, blank=True)  # set when subscription becomes active
 
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)  # Fixed typo: DateTiazmeField → DateTimeField
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         indexes = [
             models.Index(fields=['user_id', 'status']),
             models.Index(fields=['user_id', 'trial_used']),
+            models.Index(fields=['subscription_code']),
         ]
 
     def in_trial(self):
@@ -63,6 +74,24 @@ class Subscription(models.Model):
 
     def trial_has_ended(self):
         return timezone.now() >= self.trial_end
+    
+    def is_active(self):
+        """Check if subscription is currently active"""
+        if self.status == "trialing":
+            return timezone.now() < self.trial_end
+        elif self.status == "active":
+            if self.current_period_end:
+                return timezone.now() < self.current_period_end
+            return True
+        return False
+    
+    def get_plan_amount(self):
+        """Return amount in kobo for Paystack"""
+        if self.plan == "monthly":
+            return 50000  # $5 in kobo
+        elif self.plan == "yearly":
+            return 500000  # $50 in kobo
+        return 0
     
     def can_start_trial(self):
         """Check if user is eligible for a free trial"""
@@ -75,4 +104,4 @@ class Subscription(models.Model):
         return True, "Eligible for trial"
 
     def __str__(self):
-        return f"Subscription for {self.user_id} ({self.status})"
+        return f"Subscription for {self.user_id} ({self.status} - {self.plan})"

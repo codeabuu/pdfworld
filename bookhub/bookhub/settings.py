@@ -10,9 +10,14 @@ SECRET_KEY = config('DJANGO_SECRET_KEY')
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')
 
+PAYSTACK_PLAN_CODES = {
+    "monthly": config("MONTHLY_PLAN"),
+    "yearly": config("YEARLY_PLAN"),
+}
+
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "e3db8b95637c.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "c7f544d527d7.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
@@ -68,6 +73,7 @@ INSTALLED_APPS = [
     'scraper',
     'customers',
     'subscriptions',
+    'django_crontab',
 ]
 
 # MIDDLEWARE - MOVE CORS MIDDLEWARE TO TOP
@@ -101,6 +107,10 @@ TEMPLATES = [
     },
 ]
 
+CRONJOBS = [
+    ('0 0 * * *', 'django.core.management.call_command', ['handle_expired_trials']),
+]
+
 WSGI_APPLICATION = 'bookhub.wsgi.application'
 
 # Database
@@ -131,7 +141,7 @@ else:
 DATABASE_URL = config('SUPABASE_DB_URL', default=None)
 if DATABASE_URL is not None:
     DATABASES = {
-        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=50, conn_health_checks=True, ssl_require=True)
+        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=0, conn_health_checks=True, ssl_require=True)
     }
 
 AUTH_PASSWORD_VALIDATORS = [
