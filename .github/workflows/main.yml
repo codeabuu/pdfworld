@@ -30,4 +30,4 @@ jobs:
           PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
         run: |
           python manage.py migrate --noinput
-          python manage.py check_trials
+          python manage.py handle_expired_trials
