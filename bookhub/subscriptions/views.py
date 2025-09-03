@@ -436,7 +436,7 @@ def start_paid_subscription(request):
 
         if active_sub and active_sub.status == "active":
             return JsonResponse({
-                "error": "You already have an active subscription",
+                "error": "You already have an active subscription. Please Navigate to dashboard",
                 "code": "ALREADY_ACTIVE"
             }, status=400)
 
