@@ -14,8 +14,8 @@ import Signup from "./components/Signup.tsx";
 import Dashboard from "./components/Dashboard.tsx";
 import ProtectedRoute from "./components/Protectedroute.tsx";
 import StartTrial from "./components/Starttrial.tsx";
-import profile from "./components/Profile.tsx";
 import Profile from "./components/Profile.tsx";
+import PricingPage from "./pages/PricingPg.tsx";
 
 const queryClient = new QueryClient();
 
@@ -44,7 +44,8 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/start-trial" element={<StartTrial />} />
-          
+          <Route path="/pricing" element={<PricingPage />} />
+
           {/* Protected Dashboard Routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute requireSubscription={true}>
