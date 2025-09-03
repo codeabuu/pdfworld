@@ -102,7 +102,7 @@ export const getPopularGenres = async (): Promise<{
   }
 };
 
-// lib/api.ts - Add this function
+
 export const getSubscriptionStatus = async (): Promise<{
   status: string;
   current_period_end?: string;
@@ -115,5 +115,40 @@ export const getSubscriptionStatus = async (): Promise<{
   } catch (error) {
     console.error('Failed to fetch subscription status:', error);
     throw error;
+  }
+};
+
+export interface StartSubscriptionResponse {
+  authorization_url: string;
+  reference: string;
+  message: string;
+  plan_type?: string;
+  amount?: number;
+}
+
+export const startPaidSubscription = async (
+  email: string, 
+  user_id: string, 
+  plan_type: "monthly" | "yearly"
+): Promise<StartSubscriptionResponse> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}api/start-subscription/`, {
+      email,
+      user_id,
+      plan_type
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to start paid subscription:', error);
+    
+    // Handle specific error responses
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    
+    throw new Error('Failed to start subscription. Please try again.');
   }
 };

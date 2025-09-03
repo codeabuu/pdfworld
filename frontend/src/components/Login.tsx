@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Lock, Mail, ArrowLeft, Eye, EyeOff, Stars } from "lucide-react";
+import { BookOpen, Lock, Mail, ArrowLeft, Eye, EyeOff, Stars, CreditCard } from "lucide-react";
 import { authService } from "@/services/Myauthservice";
 import { subscriptionService } from "@/services/subservice";
+import { 
+  shouldContinueSubscription, 
+  getIntendedSubscription, 
+  clearIntendedSubscription 
+} from "@/utils/subRedirect";
 
 interface LoginForm {
   email: string;
@@ -18,9 +23,11 @@ interface FormErrors {
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isContinuingSubscription, setIsContinuingSubscription] = useState(false);
   const [form, setForm] = useState<LoginForm>({
     email: "",
     password: "",
@@ -28,7 +35,28 @@ const Login = () => {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const handleGoBack = () => navigate(-1);
+  // Check if we're continuing a subscription
+  useEffect(() => {
+    const checkSubscriptionIntent = () => {
+      if (shouldContinueSubscription()) {
+        setIsContinuingSubscription(true);
+        // Pre-fill email if available from location state
+        if (location.state?.email) {
+          setForm(prev => ({ ...prev, email: location.state.email }));
+        }
+      }
+    };
+
+    checkSubscriptionIntent();
+  }, [location.state]);
+
+  const handleGoBack = () => {
+    // Clear subscription intent if going back
+    if (shouldContinueSubscription()) {
+      clearIntendedSubscription();
+    }
+    navigate(-1);
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -72,46 +100,63 @@ const Login = () => {
     if (error) setError(null);
   };
 
-  // Login.tsx - Update the handleLogin function
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
-  if (!validateForm()) {
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const { success, userId } = await authService.login(form.email, form.password);
-    
-    if (success && userId) {
-      // Check subscription status after successful login
-      try {
-        const subscriptionStatus = await subscriptionService.checkSubscriptionStatus(userId);
-        
-        if (subscriptionStatus.has_access) {
-          // User has access - redirect to dashboard
-          navigate("/dashboard");
-        } else {
-          // No subscription - redirect to trial page
-          navigate("/start-trial");
-        }
-      } catch (subError) {
-        console.error('Subscription check failed:', subError);
-        // Fallback - redirect to dashboard and let it handle access control
-        navigate("/dashboard");
-      }
-    } else {
-      setError("Invalid email or password");
+    if (!validateForm()) {
+      return;
     }
-  } catch (err: any) {
-    setError(err.response?.data?.error || "Failed to sign in. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+
+    try {
+      const { success, userId } = await authService.login(form.email, form.password);
+      
+      if (success && userId) {
+        // Check if we need to continue with subscription
+        if (shouldContinueSubscription()) {
+          const planType = getIntendedSubscription();
+          
+          // Redirect to pricing page which will handle the automatic continuation
+          navigate("/pricing", { 
+            state: { 
+              autoContinue: true,
+              message: `Continuing with your ${planType} subscription...` 
+            } 
+          });
+        } else {
+          // Normal flow - check subscription status
+          try {
+            const subscriptionStatus = await subscriptionService.checkSubscriptionStatus(userId);
+            
+            if (subscriptionStatus.has_access) {
+              navigate("/dashboard");
+            } else {
+              navigate("/pricing", { state: { message: "Please choose a subscription plan to continue" } });
+            }
+          } catch (subError) {
+            console.error('Subscription check failed:', subError);
+            navigate("/dashboard");
+          }
+        }
+      } else {
+        setError("Invalid email or password");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to sign in. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignupInstead = () => {
+    // Clear subscription intent if switching to signup
+    if (shouldContinueSubscription()) {
+      clearIntendedSubscription();
+    }
+    navigate("/signup");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 relative overflow-hidden">
@@ -164,15 +209,31 @@ const handleLogin = async (e: React.FormEvent) => {
             <div className="absolute top-1/2 left-12 w-10 h-10 bg-primary/15 rounded-lg rotate-45 shadow-md"></div>
 
             <div className="relative z-10 text-center">
-              <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center mb-8 mx-auto shadow-lg">
-                <BookOpen className="h-12 w-12 text-primary" />
-              </div>
-              <h1 className="text-4xl font-bold text-foreground mb-4">
-                Welcome Back
-              </h1>
-              <p className="text-muted-foreground text-lg mb-8">
-                Sign in to continue your reading journey
-              </p>
+              {isContinuingSubscription ? (
+                <>
+                  <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center mb-8 mx-auto shadow-lg">
+                    <CreditCard className="h-12 w-12 text-primary" />
+                  </div>
+                  <h1 className="text-4xl font-bold text-foreground mb-4">
+                    Complete Your Subscription
+                  </h1>
+                  <p className="text-muted-foreground text-lg mb-8">
+                    Sign in to continue with your subscription
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center mb-8 mx-auto shadow-lg">
+                    <BookOpen className="h-12 w-12 text-primary" />
+                  </div>
+                  <h1 className="text-4xl font-bold text-foreground mb-4">
+                    Welcome Back
+                  </h1>
+                  <p className="text-muted-foreground text-lg mb-8">
+                    Sign in to continue your reading journey
+                  </p>
+                </>
+              )}
               <div className="flex justify-center space-x-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Stars key={star} className="h-5 w-5 text-yellow-400 fill-current" />
@@ -205,12 +266,29 @@ const handleLogin = async (e: React.FormEvent) => {
             </div>
 
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-foreground mb-2">
-                Sign In
-              </h2>
-              <p className="text-muted-foreground">
-                Enter your credentials to access your account
-              </p>
+              {isContinuingSubscription ? (
+                <>
+                  <h2 className="text-3xl font-bold text-foreground mb-2">
+                    Almost There!
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Sign in to complete your subscription
+                  </p>
+                  <div className="mt-4 inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Subscription pending</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-3xl font-bold text-foreground mb-2">
+                    Sign In
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Enter your credentials to access your account
+                  </p>
+                </>
+              )}
             </div>
 
             <form className="space-y-6" onSubmit={handleLogin}>
@@ -319,10 +397,12 @@ const handleLogin = async (e: React.FormEvent) => {
                 {loading ? (
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-background border-t-transparent"></div>
-                    <span>Signing in...</span>
+                    <span>
+                      {isContinuingSubscription ? "Continuing..." : "Signing in..."}
+                    </span>
                   </div>
                 ) : (
-                  "Sign In"
+                  isContinuingSubscription ? "Complete Subscription" : "Sign In"
                 )}
               </Button>
 
@@ -330,12 +410,13 @@ const handleLogin = async (e: React.FormEvent) => {
               <div className="text-center pt-4">
                 <p className="text-sm text-muted-foreground">
                   Don't have an account?{" "}
-                  <Link
-                    to="/signup"
+                  <button
+                    type="button"
+                    onClick={handleSignupInstead}
                     className="font-semibold text-primary hover:text-primary/80 transition-colors underline underline-offset-4"
                   >
                     Create account
-                  </Link>
+                  </button>
                 </p>
               </div>
             </form>
