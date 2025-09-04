@@ -17,13 +17,14 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "a923b6236f4b.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "2249549aeaae.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",    # Your frontend origin
     "http://127.0.0.1:8080",    # Alternative frontend origin
-    "http://localhost:3000",    # Common React dev server port
+    "http://localhost:3000",
+    "http://127.0.0.1:6379"    # Common React dev server port
 ]
 
 CORS_ALLOW_CREDENTIALS = True  # ← ADD THIS LINE (CRITICAL!)
@@ -42,6 +43,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     "http://localhost:3000",
+    "http://127.0.0.1:6379",
     LIVE_URL
 ]
 
@@ -69,11 +71,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',  # Make sure this is included
+    'corsheaders', 
     'scraper',
     'customers',
     'subscriptions',
     'django_crontab',
+    'django_ratelimit',
 ]
 
 # MIDDLEWARE - MOVE CORS MIDDLEWARE TO TOP
@@ -88,7 +91,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# ... rest of your settings remain the same ...
+
 ROOT_URLCONF = 'bookhub.urls'
 
 TEMPLATES = [
@@ -180,3 +183,13 @@ SUPABASE_JWT_SECRET = config("SUPABASE_JWT_SECRET")
 SUPABASE_ANON_KEY = config("SUPABASE_ANON_KEY")
 _supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 SUPABASE_CLIENT = _supabase
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}

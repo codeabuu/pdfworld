@@ -9,8 +9,28 @@ from django.conf import settings
 from supabase_auth import User
 from .models import Subscription, PaymentMethod
 from .utils import initialize_transaction, verify_transaction, refund_transaction
+from django_ratelimit.decorators import ratelimit
+from django.shortcuts import redirect
+import requests
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+import re
+
 
 PAYSTACK_SECRET_KEY = settings.PAYSTACK_SECRET_KEY
+
+def is_valid_email(email: str) -> bool:
+    """Simple email regex validation"""
+    return bool(re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", str(email)))
+
+
+def require_fields(data: dict, fields: list):
+    """Ensure all required fields exist"""
+    missing = [f for f in fields if not data.get(f)]
+    if missing:
+        return False, f"Missing required field(s): {', '.join(missing)}"
+    return True, None
+
 
 def check_trial_eligibility(user_id):
     """
@@ -34,6 +54,7 @@ def check_trial_eligibility(user_id):
 
 @csrf_exempt
 @require_POST
+@ratelimit(key='ip', rate='10/m', block=True)
 def check_trial_eligibility_endpoint(request):
     """Check if user can start a free trial"""
     try:
@@ -63,8 +84,10 @@ def check_trial_eligibility_endpoint(request):
     except Exception as e:
         return JsonResponse({"error": "Internal server error"}, status=500)
 
+
 @csrf_exempt
 @require_POST
+@ratelimit(key='ip', rate='10/h', block=True)
 def start_trial(request):
     """
     1. User clicks "Start Free Trial".
@@ -90,7 +113,7 @@ def start_trial(request):
         resp = initialize_transaction(
             email=email,
             amount=19900,
-            callback_url=f"{settings.LIVE_URL}/api/payment-callback/",
+            callback_url="http://127.0.0.1:8080/login/",
             metadata={"user_id": user_id, "plan": "trial"}
         )
         
@@ -111,6 +134,7 @@ def start_trial(request):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"error": "Internal server error"}, status=500)
+
 
 @csrf_exempt
 @require_POST
@@ -157,6 +181,8 @@ def verify_card(request):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"error": "Internal server error"}, status=500)
+
+
 
 @csrf_exempt
 def paystack_webhook(request):
@@ -296,47 +322,17 @@ def paystack_webhook(request):
 @csrf_exempt
 def payment_callback(request):
     """
-    User gets redirected here after Paystack payment (success or failure)
+    After Paystack payment, logout the user and redirect to login page.
     """
-    reference = request.GET.get("reference")
-    user_id = request.GET.get("user_id")
-    trxref = request.GET.get("trxref")  # Paystack often uses trxref parameter
+    # Call logout API (assuming it's exposed at /api/logout/)
+    try:
+        logout_url = request.build_absolute_uri("/api/logout/")
+        requests.post(logout_url, cookies=request.COOKIES, timeout=5)
+    except Exception as e:
+        print(f"Logout call failed: {e}")
 
-    if not reference:
-        return JsonResponse({"error": "Missing reference"}, status=400)
-
-    # Verify the transaction to check if it was successful
-    resp = verify_transaction(reference)
-    if not resp.get("status"):
-        return JsonResponse({
-            "success": False, 
-            "message": "Payment verification failed",
-            "status": "failed"
-        })
-
-    # Check if payment was successful - Paystack structure is different
-    tx_data = resp["data"]
-    
-    # Paystack uses different status indicators
-    if tx_data.get("status") == "success" or tx_data.get("gateway_response") == "Successful":
-        return JsonResponse({
-            "success": True, 
-            "message": "Payment completed successfully. Your trial has started!",
-            "reference": reference,
-            "status": "success",
-            "amount": tx_data.get("amount"),
-            "currency": tx_data.get("currency")
-        })
-    else:
-        # Payment failed or was abandoned
-        return JsonResponse({
-            "success": False,
-            "message": f"Payment status: {tx_data.get('gateway_response', 'Unknown status')}",
-            "reference": reference,
-            "status": "failed",
-            "gateway_response": tx_data.get("gateway_response")
-        })
-    
+    # Redirect user to login page (adjust URL if frontend runs separately)
+    return redirect("/login")
 
 
 @csrf_exempt
@@ -347,8 +343,6 @@ def check_subscription_status(request):
 
         if not user_id:
             return JsonResponse({"error": "user_id is required"}, status=400)
-
-        # ✅ Skip User model — directly check subscriptions by user_id
         active_sub = Subscription.objects.filter(user_id=user_id).order_by("-created_at").first()
 
         if not active_sub:
@@ -412,6 +406,7 @@ from .utils import create_subscription, disable_subscription, PAYSTACK_PLAN_CODE
 
 @csrf_exempt
 @require_POST
+@ratelimit(key='ip', rate='5/h', block=True)
 def start_paid_subscription(request):
     """
     Start a monthly or yearly paid subscription
@@ -449,7 +444,7 @@ def start_paid_subscription(request):
         resp = initialize_transaction(
             email=email,
             plan=plan_code,  # amount will be tied to plan_code on Paystack
-            callback_url=f"{settings.LIVE_URL}/api/payment-callback/",
+            callback_url="http://127.0.0.1:8080/login/",
             metadata={
                 "user_id": user_id,
                 "plan_type": plan_type,

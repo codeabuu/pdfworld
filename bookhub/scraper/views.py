@@ -7,13 +7,25 @@ import requests
 from django.http import FileResponse, HttpResponse, HttpResponseNotAllowed
 from io import BytesIO
 from django.conf import settings
-from scraper.utils import scrape_search
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from bs4 import BeautifulSoup
 from django.contrib.auth.decorators import login_required
+from django_ratelimit.decorators import ratelimit
+import logging
+import uuid
+import cloudscraper
+import time
+import os
+import re
+import io
+import fitz  # PyMuPDF
+from urllib.parse import urljoin
+from .utils import scrape_genres, parse_genres, parse_books_from_genre, scrape_books_by_genre, get_genre_by_slug
 
+logger = logging.getLogger(__name__)
 
+@ratelimit(key='ip', rate='10/m', method='ALL', block=True)
 @api_view(['GET'])
 def search(request):
     query = request.GET.get('s', '').strip()
@@ -26,31 +38,40 @@ def search(request):
     parsed_results = parse_search_results(results)
     return Response({'query': query, 'results': parsed_results if parsed_results else []})
 
+
+
 @api_view(['GET'])
+@ratelimit(key='ip', rate='20/m', block=True)
 def new_releases(request):
     cache_key = 'new_releases'
     
-    if cached := cache.get(cache_key):
+    cached = cache.get(cache_key)
+    if cached:
+        logger.info("Serving new releases from cache")
         return Response(
             {
             'source': 'OceanofPF New Releases',
             'count': len(cached),
-            'results': cached
+            'results': cached,
+            'cached': True
         }
         )
+    logger.info("Cache miss — scraping new releases")
     results = scrape_new_releases()
     parsed_results = parse_new_releases(results)
-    cache.set(cache_key, parsed_results, timeout=60 * 60 * 4)
+    cache.set(cache_key, parsed_results, timeout=60 * 60 * 8)
 
     return Response(
         {
             'source': 'OceanofPDF New Releases',
+            'cached': False,
             'count': len(parsed_results),
             'results': parsed_results
         }
     )
 
 @api_view(['GET'])
+@ratelimit(key='ip', rate='20/m', block=True)
 def magazines(request):
     cache_key = 'magazines'
 
@@ -58,21 +79,24 @@ def magazines(request):
         return Response(
             {
             'source': 'OceanofPF Magazines',
+            'cached': True,
             'count': len(cached),
             'results': cached
         }
         )
     results = scrape_magazines()
     parsed_results = parse_magazines(results)
-    cache.set(cache_key, parsed_results, timeout=60 * 60 * 4)
+    cache.set(cache_key, parsed_results, timeout=60 * 60 * 24)
 
     return Response(
         {
             'source': 'OceanofPDF New Releases',
+            'cached': False,
             'count': len(parsed_results),
             'results': parsed_results
         }
     )
+
 
 @api_view(['GET'])
 def mynovels(request):
@@ -100,7 +124,7 @@ def mynovels(request):
 
 
 @api_view(['GET'])
-# @login_required
+@ratelimit(key='ip', rate='10/m', block=True)
 def book_detail(request, book_slug):
     """Enhanced book detail endpoint with safety checks"""
     try:
@@ -139,63 +163,6 @@ def book_detail(request, book_slug):
     except Exception as e:
         return Response({'error': str(e)}, status=500)
 
-from rest_framework.decorators import api_view
-from django.http import HttpResponse, HttpResponseNotAllowed
-import requests
-import uuid
-from .models import TempFile
-from django.core.files.base import ContentFile
-
-
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.http import StreamingHttpResponse
-import requests
-from bs4 import BeautifulSoup
-
-import requests
-import cloudscraper
-from bs4 import BeautifulSoup
-import time
-from django.http import FileResponse
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.core.files.base import ContentFile
-from .models import TempFile
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
-import os
-from django.http import FileResponse
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-import cloudscraper
-from bs4 import BeautifulSoup
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.http import FileResponse
-import time
-from django.conf import settings
-
-os.makedirs(settings.DOWNLOAD_DIR, exist_ok=True)
-
-import os
-import re
-import uuid
-import cloudscraper
-from django.conf import settings
-from django.http import FileResponse
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 
 # Configure in settings.py:
 # DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download_temp')
@@ -208,6 +175,7 @@ def extract_meta_refresh_url(html):
 
 
 @api_view(['POST'])
+@ratelimit(key='ip', rate='20/h', block=True)
 def download_proxy(request):
     """
     Endpoint that:
@@ -215,6 +183,11 @@ def download_proxy(request):
     2. Handles the download process 
     3. Streams PDF back to user
     """
+    if getattr(request, 'limited', False):
+        return Response(
+            {'error': 'Too many download attempts. Try again later.'},
+            status=429
+        )
     temp_file = None
     try:
         # 1. Validate input
@@ -256,19 +229,6 @@ def download_proxy(request):
         pdf_url = extract_meta_refresh_url(response.text)
         if not pdf_url:
             raise ValueError("Download link not found")
-
-        # # 7. Stream download to temp file
-        # temp_path = os.path.join(settings.DOWNLOAD_DIR, f"dl_{uuid.uuid4().hex}.pdf")
-        # with open(temp_path, 'wb') as f:
-        #     for chunk in scraper.get(pdf_url, stream=True).iter_content(chunk_size=8192):
-        #         f.write(chunk)
-
-        # # 8. Verify PDF
-        # with open(temp_path, 'rb') as f:
-        #     if f.read(4) != b'%PDF':
-        #         raise ValueError("Invalid PDF file")
-
-        # # 9. Return as download
 
         pdf_response = scraper.get(pdf_url)
         pdf_response.raise_for_status()
@@ -503,6 +463,7 @@ def clean_and_download(request):
     
 
 @api_view(['POST'])
+@ratelimit(key='ip', rate='20/h', block=True)
 def download_magazine(request):
     """
     Magazine-specific download endpoint following the same pattern as download_proxy
@@ -511,6 +472,11 @@ def download_magazine(request):
     def extract_meta_refresh_url(html):
         match = re.search(r'<meta\s+http-equiv="refresh"\s+content="\d+;url=(.*?)"', html, re.IGNORECASE)
         return match.group(1) if match else None
+    if getattr(request, 'limited', False):
+        return Response(
+            {'error': 'Too many download attempts. Try again later.'},
+            status=429
+        )
 
     try:
         # 1. Validate input (same simple check as download_proxy)
@@ -583,6 +549,7 @@ def download_magazine(request):
 from .utils import scrape_genres, parse_genres, parse_books_from_genre, scrape_books_by_genre, get_genre_by_slug
 
 @api_view(['GET'])
+@ratelimit(key='ip', rate='20/m', block=True)
 def genres(request):
     cache_key = 'genres_list'
 
@@ -590,6 +557,7 @@ def genres(request):
         return Response({
             'source': 'OceanofPDF Genres',
             'count': len(cached),
+            'cached': True,
             'results': cached
         })
 
@@ -601,11 +569,13 @@ def genres(request):
     return Response({
         'source': 'OceanofPDF Genres',
         'count': len(parsed_results),
+        'cached': False,
         'results': parsed_results
     })
 
 
 @api_view(['GET'])
+@ratelimit(key='ip', rate='20/m', block=True)
 def genre_detail(request, genre_slug):
     """Get detailed information about a specific genre"""
     cache_key = f'genre_detail_{genre_slug}'
@@ -630,6 +600,7 @@ def genre_detail(request, genre_slug):
     })
 
 @api_view(['GET'])
+@ratelimit(key='ip', rate='20/m', block=True)
 def genre_books(request, genre_slug):
     """Get books for a specific genre using its URL"""
     try:
@@ -648,7 +619,8 @@ def genre_books(request, genre_slug):
             'source': f'OceanofPDF Books - {genre_slug}',
             'page': page,
             'count': len(cached),
-            'results': cached
+            'results': cached,
+            'cached': True
         })
     
     # Get the genre to access its URL
@@ -668,35 +640,35 @@ def genre_books(request, genre_slug):
     
     books = parse_books_from_genre(html_content, genre['name'])
     # base_url = request.build_absolute_uri().split('?')[0]
-    cache.set(cache_key, books, timeout=60 * 60 * 6)
+    cache.set(cache_key, books, timeout=60 * 60 * 24)
     
     return Response({
         'source': f'OceanofPDF Books - {genre_slug}',
         'page': page,
         'count': len(books),
-        'results': books
+        'results': books,
+        'cached': False
     })
 
 @api_view(['GET'])
 def popular_genres(request):
     """Get top genres by book count"""
     cache_key = 'genres_list'
-    cached = cache.get(cache_key)
-    
-    if not cached:
+
+    if cached := cache.get(cache_key):
+        genres = cached
+    else:
         html_content = scrape_genres()
-        if html_content:
-            cached = parse_genres(html_content)
-            cache.set(cache_key, cached, timeout=60 * 60 * 24)
-    
-    if not cached:
-        return Response({'error': 'No genre data available'}, status=404)
-    
-    # Sort by book count descending and take top 20
-    popular = sorted(cached, key=lambda x: x['book_count'], reverse=True)[:20]
-    
+        if not html_content:
+            return Response({'error': 'No genre data available'}, status=404)
+        genres = parse_genres(html_content)
+        cache.set(cache_key, genres, timeout=60 * 60 * 24)  # 24 hours
+
+    popular = sorted(genres, key=lambda x: x['book_count'], reverse=True)[:20]
+
     return Response({
         'source': 'OceanofPDF Popular Genres',
         'count': len(popular),
-        'results': popular
+        'results': popular,
+        'cached': False
     })

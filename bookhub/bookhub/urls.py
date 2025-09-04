@@ -1,4 +1,17 @@
-from scraper.views import clean_and_download, download_magazine, search, new_releases, book_detail, download_proxy, test_download, magazines, genres, genre_books, genre_detail, popular_genres
+from scraper.views import (
+    clean_and_download,
+    download_magazine,
+    search,
+    new_releases,
+    book_detail,
+    download_proxy,
+    test_download,
+    magazines,
+    genres,
+    genre_books,
+    genre_detail,
+    popular_genres
+)
 from django.contrib import admin
 from django.urls import path
 from customers.views import me
