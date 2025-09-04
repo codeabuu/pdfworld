@@ -5,7 +5,9 @@ import jwt
 import logging
 
 logger = logging.getLogger(__name__)
+from django_ratelimit.decorators import ratelimit
 
+@ratelimit(key='ip', rate='60/m', block=False)
 def me(request):
     logger.info("=== /api/me/ endpoint called ===")
     

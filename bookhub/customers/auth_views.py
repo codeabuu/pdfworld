@@ -3,6 +3,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from .supabase_client import get_supabase
+from django_ratelimit.decorators import ratelimit
+
 
 COOKIE_NAME = "sb-access"
 REFRESH_COOKIE_NAME = "sb-refresh"
@@ -24,7 +26,13 @@ def _set_session_cookies(response, session):
 
 @csrf_exempt
 @require_POST
+@ratelimit(key='ip', rate='3/h', block=False) 
 def signup(request):
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many signups. Please try again later."},
+            status=429
+        )
     try:
         data = json.loads(request.body or "{}")
         email = data.get("email")
@@ -59,7 +67,10 @@ def signup(request):
 # authviews.py - Update your login function
 @csrf_exempt
 @require_POST
+@ratelimit(key='ip', rate='5/m', block=False) 
 def login(request):
+    if getattr(request, 'limited', False):
+        return JsonResponse({"error": "Too many login attempts. Try again later."}, status=429)
     try:
         data = json.loads(request.body or "{}")
         email = data.get("email")
