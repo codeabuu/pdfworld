@@ -65,7 +65,7 @@ class AuthService {
       });
       return true;
     } catch (error) {
-      throw new Error('Failed to create account. Please try again.');
+      throw new Error('Too many attempts, please try again later.');
     }
   }
 

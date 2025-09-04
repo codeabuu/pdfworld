@@ -145,7 +145,7 @@ const SignUp = () => {
       }, 3000);
       
     } catch (err: any) {
-      setError(err.message || "Failed to create account. Please try again.");
+      setError(err.message || "Too many attempts, please try again later.");
       console.error("Signup error:", err);
     } finally {
       setLoading(false);

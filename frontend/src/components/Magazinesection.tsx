@@ -99,10 +99,10 @@ export const MagazinesSection = ({
                   <h3 className="font-semibold line-clamp-2 mb-2 group-hover:text-amber-700 transition-colors text-sm">
                     {magazine.title}
                   </h3>
-                  <div className="space-y-1 text-xs text-muted-foreground">
+                  {/* <div className="space-y-1 text-xs text-muted-foreground">
                     <p>Issue: {magazine.issue}</p>
                     <p>Date: {new Date(magazine.date).toLocaleDateString()}</p>
-                  </div>
+                  </div> */}
                 </CardContent>
                 <CardFooter className="p-4 pt-0">
                   <Button 
