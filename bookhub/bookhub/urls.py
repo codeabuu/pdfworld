@@ -15,7 +15,7 @@ from scraper.views import (
 from django.contrib import admin
 from django.urls import path
 from customers.views import me
-from customers.auth_views import signup, login, logout
+from customers.auth_views import signup, login, logout, refresh_token, check_auth_status
 from subscriptions.views import (
     paystack_webhook, 
     start_trial, 
@@ -58,5 +58,8 @@ urlpatterns = [
     path('api/start-subscription/', start_paid_subscription, name='start_paid_subscription'),
     path('api/create-subscription/', create_recurring_subscription, name='create_recurring_subscription'),
     path('api/cancel-subscription', cancel_subscription, name='cancel_subscription'),
+
+    path('api/refresh-token/', refresh_token, name='refresh_token'),
+    path('api/check-auth/', check_auth_status, name='check_auth_status'),
 
 ]

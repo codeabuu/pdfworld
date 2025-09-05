@@ -16,13 +16,23 @@ COOKIE_OPTS = {
     "max_age": 60 * 60 * 24 * 7,  # 7 days
 }
 
-def _set_session_cookies(response, session):
+def _set_session_cookies(response, session, remember_me=True):
     access_token = session.get("access_token")
     refresh_token = session.get("refresh_token")
+
+    cookie_opts = COOKIE_OPTS.copy()
+    if not remember_me:
+        # Session cookie (expires when browser closes)
+        cookie_opts["max_age"] = None
+        cookie_opts["expires"] = None
+    else:
+        # 48-hour persistent cookie
+        cookie_opts["max_age"] = 60 * 60 * 24 * 7
+    
     if access_token:
-        response.set_cookie(COOKIE_NAME, access_token, **COOKIE_OPTS)
+        response.set_cookie(COOKIE_NAME, access_token, **cookie_opts)
     if refresh_token:
-        response.set_cookie(REFRESH_COOKIE_NAME, refresh_token, **COOKIE_OPTS)
+        response.set_cookie(REFRESH_COOKIE_NAME, refresh_token, **cookie_opts)
 
 @csrf_exempt
 @require_POST
@@ -39,6 +49,7 @@ def signup(request):
         password = data.get("password")
         first_name = data.get("firstName")
         last_name = data.get("lastName")
+        remember_me = data.get("rememberMe", True)
 
         if not email or not password:
             return JsonResponse({"error": "Email and password required"}, status=400)
@@ -56,7 +67,7 @@ def signup(request):
         response = JsonResponse(out, status=201)
 
         session = out.get("session") or {}
-        _set_session_cookies(response, session)
+        _set_session_cookies(response, session, remember_me)
         return response
     except Exception as e:
         import traceback
@@ -75,6 +86,7 @@ def login(request):
         data = json.loads(request.body or "{}")
         email = data.get("email")
         password = data.get("password")
+        remember_me = data.get("rememberMe", True)
         
         if not email or not password:
             return JsonResponse({"error": "Email and password required"}, status=400)
@@ -105,7 +117,7 @@ def login(request):
                 "access_token": session.access_token,
                 "refresh_token": session.refresh_token
             }
-            _set_session_cookies(response, session_dict)
+            _set_session_cookies(response, session_dict, remember_me)
             
             return response
             
@@ -133,6 +145,7 @@ def logout(request):
         pass
     return response
 
+
 @csrf_exempt
 @require_POST
 def refresh_token(request):
@@ -149,3 +162,63 @@ def refresh_token(request):
     response = JsonResponse({"session": {"expires_at": session.get("expires_at")}})
     _set_session_cookies(response, session)
     return response
+
+@csrf_exempt
+@require_POST
+def check_auth_status(request):
+    """
+    Check if user is authenticated based on cookies
+    """
+    access_token = request.COOKIES.get(COOKIE_NAME)
+    refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
+    
+    if not access_token and not refresh_token:
+        return JsonResponse({"authenticated": False}, status=200)
+    
+    supabase = get_supabase()
+    
+    try:
+        # Try to get user from access token
+        if access_token:
+            user = supabase.auth.get_user(access_token)
+            if user:
+                return JsonResponse({
+                    "authenticated": True,
+                    "user": {
+                        "id": user.user.id,
+                        "email": user.user.email,
+                    }
+                }, status=200)
+        
+        # If access token is invalid/expired, try refresh token
+        if refresh_token:
+            auth_response = supabase.auth.refresh_session({"refresh_token": refresh_token})
+            if auth_response.session:
+                user = auth_response.user
+                session = auth_response.session
+                
+                response = JsonResponse({
+                    "authenticated": True,
+                    "user": {
+                        "id": user.id,
+                        "email": user.email,
+                    }
+                }, status=200)
+                
+                # Update cookies with new session
+                session_dict = {
+                    "access_token": session.access_token,
+                    "refresh_token": session.refresh_token
+                }
+                _set_session_cookies(response, session_dict)
+                return response
+                
+    except Exception as e:
+        print(f"Auth check error: {e}")
+        # Clear invalid cookies
+        response = JsonResponse({"authenticated": False}, status=200)
+        response.delete_cookie(COOKIE_NAME, path="/")
+        response.delete_cookie(REFRESH_COOKIE_NAME, path="/")
+        return response
+    
+    return JsonResponse({"authenticated": False}, status=200)

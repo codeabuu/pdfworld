@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Lock, Mail, ArrowLeft, Eye, EyeOff, Stars, CreditCard } from "lucide-react";
 import { authService } from "@/services/Myauthservice";
 import { subscriptionService } from "@/services/subservice";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   shouldContinueSubscription, 
   getIntendedSubscription, 
@@ -31,9 +32,12 @@ const Login = () => {
   const [form, setForm] = useState<LoginForm>({
     email: "",
     password: "",
-    rememberMe: false,
+    rememberMe: true, // Default to true for better UX
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  
+  // Use the auth hook
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Check if we're continuing a subscription
   useEffect(() => {
@@ -50,12 +54,52 @@ const Login = () => {
     checkSubscriptionIntent();
   }, [location.state]);
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      handleAuthenticatedRedirect();
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
+  const handleAuthenticatedRedirect = async () => {
+    // Check if we need to continue with subscription
+    if (shouldContinueSubscription()) {
+      const planType = getIntendedSubscription();
+      navigate("/pricing", { 
+        state: { 
+          autoContinue: true,
+          message: `Continuing with your ${planType} subscription...` 
+        } 
+      });
+    } else {
+      // Normal flow - check subscription status
+      try {
+        // We need to get the user ID from the auth status check
+        const { authenticated, user } = await authService.checkAuthStatus();
+        if (authenticated && user) {
+          const subscriptionStatus = await subscriptionService.checkSubscriptionStatus(user.id);
+          
+          if (subscriptionStatus.has_access) {
+            navigate("/dashboard");
+          } else {
+            navigate("/pricing", { state: { message: "Please choose a subscription plan to continue" } });
+          }
+        } else {
+          navigate("/pricing", { state: { message: "Please choose a subscription plan to continue" } });
+        }
+      } catch (subError) {
+        console.error('Subscription check failed:', subError);
+        navigate("/dashboard");
+      }
+    }
+  };
+
   const handleGoBack = () => {
     // Clear subscription intent if going back
     if (shouldContinueSubscription()) {
       clearIntendedSubscription();
     }
-    navigate(-1);
+    navigate("/");
   };
 
   const validateForm = (): boolean => {
@@ -111,7 +155,12 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { success, userId } = await authService.login(form.email, form.password);
+      // Pass rememberMe to the login service
+      const { success, userId } = await authService.login(
+        form.email, 
+        form.password, 
+        form.rememberMe
+      );
       
       if (success && userId) {
         // Check if we need to continue with subscription
@@ -144,7 +193,7 @@ const Login = () => {
         setError("Invalid email or password");
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to sign in. Please try again.");
+      setError(err.response?.data?.error || "Wrong email or password. Sign up if you don’t have an account.");
     } finally {
       setLoading(false);
     }
@@ -157,6 +206,15 @@ const Login = () => {
     }
     navigate("/signup");
   };
+
+  // Show loading while checking auth status
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 relative overflow-hidden">

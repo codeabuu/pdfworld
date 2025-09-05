@@ -27,11 +27,22 @@ class AuthService {
     }
   }
 
-  async login(email: string, password: string): Promise<{ success: boolean; userId?: string }> {
+  async checkAuthStatus(): Promise<{ authenticated: boolean; user?: any }> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/check-auth/`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Auth status check failed:", error.response?.data || error.message);
+      return { authenticated: false };
+    }
+  }
+
+  async login(email: string, password: string, rememberMe: boolean = true): Promise<{ success: boolean; userId?: string }> {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/login/`, {
         email,
-        password
+        password,
+        rememberMe
       });
       
       // Store user ID from response if available
@@ -41,9 +52,9 @@ class AuthService {
       }
       
       return { success: response.status === 200, userId: currentUserId || undefined };
-    } catch (error) {
-      console.error('Login failed:', error);
-      return { success: false };
+    } catch (error: any) {
+      console.error('Login failed:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.error || 'Login failed');
     }
   }
 
@@ -55,17 +66,21 @@ class AuthService {
     return currentUserId || localStorage.getItem('user_id');
   }
 
-  async signUp(email: string, password: string, firstName: string, lastName: string): Promise<boolean> {
+  async signUp(email: string, password: string, firstName: string, lastName: string, rememberMe: boolean = true): Promise<boolean> {
     try {
       await axios.post(`${API_BASE_URL}/api/signup/`, { 
         email, 
         password, 
         firstName, 
-        lastName 
+        lastName,
+        rememberMe
       });
       return true;
-    } catch (error) {
-      throw new Error('Too many attempts, please try again later.');
+    } catch (error: any) {
+      if (error.response?.status === 429) {
+        throw new Error('Too many attempts, please try again later.');
+      }
+      throw new Error(error.response?.data?.error || 'Signup failed');
     }
   }
 
@@ -78,6 +93,21 @@ class AuthService {
       localStorage.removeItem('auth_token');
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+  }
+
+  // Helper to get CSRF token
+  async getCsrfToken(): Promise<string> {
+    try {
+      await axios.get(`${API_BASE_URL}/api/csrf/`);
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1] || '';
+      return cookieValue;
+    } catch (error) {
+      console.error('CSRF token fetch failed:', error);
+      return '';
     }
   }
 }

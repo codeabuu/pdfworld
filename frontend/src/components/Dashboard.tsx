@@ -81,7 +81,7 @@ const Dashboard = ({ children }: DashboardProps) => {
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const isSearchMode = queryParams.has("q");
-  const isDashboardHome = location.pathname === '/dashboard';
+  const isDashboardHome = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
 
   useEffect(() => {
     fetchDashboardData();
