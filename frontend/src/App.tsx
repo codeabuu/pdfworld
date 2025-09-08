@@ -16,6 +16,8 @@ import ProtectedRoute from "./components/Protectedroute.tsx";
 import StartTrial from "./components/Starttrial.tsx";
 import Profile from "./components/Profile.tsx";
 import PricingPage from "./pages/PricingPg.tsx";
+import Header from "./components/Header.tsx";
+import { useState } from "react";
 
 const queryClient = new QueryClient();
 
@@ -28,23 +30,43 @@ const DashboardLayout = () => {
   );
 };
 
+const MainLayout = () => {
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  
+  const handleSearch = (results: any[]) => {
+    setSearchResults(results);
+  };
+
+  return (
+    <div className="min-h-screen">
+      <Header onSearch={handleSearch} />
+      <main>
+        <Outlet context={{ searchResults }} />
+      </main>
+    </div>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+      
         <Routes>
           <Route path="/testprofile" element={<Profile />} />
           <Route path="/" element={<Index />} />
-          <Route path="/search" element={<Index />} />
-          <Route path="/releases" element={<Releases />} />
-          <Route path="/magazines" element={<Magazines />} />
-          <Route path="/genres" element={<Genres />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/start-trial" element={<StartTrial />} />
-          <Route path="/pricing" element={<PricingPage />} />
+          <Route element={<MainLayout />}>
+            <Route path="/search" element={<Index />} />
+            <Route path="/releases" element={<Releases />} />
+            <Route path="/magazines" element={<Magazines />} />
+            <Route path="/genres" element={<Genres />} />
+            <Route path="/start-trial" element={<StartTrial />} />
+            <Route path="/pricing" element={<PricingPage />} />
+          </Route>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
           {/* Protected Dashboard Routes */}
           <Route path="/dashboard" element={

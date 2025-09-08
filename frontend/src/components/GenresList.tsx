@@ -1,11 +1,12 @@
 // GenresList.tsx
 import { Button } from "@/components/ui/button";
-import { Library, TrendingUp } from "lucide-react"; // Add TrendingUp icon
+import { Library, TrendingUp } from "lucide-react";
 import { Genre } from "@/types/types";
+import { getGenreImage, getFallbackGenreImage } from "@/lib/genreimages"; // Import the helper functions
 
 interface GenresListProps {
   genres: Genre[];
-  popularGenres: Genre[]; // Add popularGenres prop
+  popularGenres: Genre[];
   loading: boolean;
   onGenreSelect: (genre: Genre) => void;
   onNavigateBack: () => void;
@@ -52,7 +53,7 @@ const GenresList = ({ genres, popularGenres, loading, onGenreSelect, onNavigateB
         </p>
       </div>
 
-      {/* Popular Genres Section */}
+      {/* Popular Genres Section with Images */}
       {popularGenres.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center gap-3">
@@ -61,45 +62,66 @@ const GenresList = ({ genres, popularGenres, loading, onGenreSelect, onNavigateB
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {popularGenres.map((genre) => (
-              <div
-                key={genre.slug}
-                className="bg-card rounded-lg border-2 border-amber-200 overflow-hidden group hover:shadow-lg hover:border-amber-300 transition-all duration-300 cursor-pointer"
-                onClick={() => onGenreSelect(genre)}
-              >
-                {/* Genre Card */}
-                <div className="h-40 relative bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
-                  <Library className="h-12 w-12 text-amber-600" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-                </div>
+            {popularGenres.map((genre) => {
+              const genreImage = getGenreImage(genre.name, genre.slug);
+              const isCustomImage = !genreImage.startsWith('bg-gradient');
+              console.log('Genre:', genre.name, 'Slug:', genre.slug, 'Image:', genreImage, 'IsCustom:', isCustomImage);
+              
+              return (
+                <div
+                  key={genre.slug}
+                  className="bg-card rounded-lg border-2 border-amber-200 overflow-hidden group hover:shadow-lg hover:border-amber-300 transition-all duration-300 cursor-pointer"
+                  onClick={() => onGenreSelect(genre)}
+                >
+                  {/* Genre Card with Image */}
+                  <div className={`h-40 relative overflow-hidden ${!isCustomImage ? genreImage : ''}`}>
+                    {isCustomImage ? (
+                      <img 
+                        src={genreImage} 
+                        alt={genre.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.parentElement!.className = `${getFallbackGenreImage(genre.name)} h-40 relative overflow-hidden`;
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Library className="h-12 w-12 text-white opacity-90" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                  </div>
 
-                {/* Genre Info */}
-                <div className="p-4 space-y-3">
-                  <h3 className="font-semibold text-foreground group-hover:text-amber-700 transition-colors line-clamp-2">
-                    {genre.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {genre.book_count.toLocaleString()} books
-                  </p>
+                  {/* Genre Info */}
+                  <div className="p-4 space-y-3">
+                    <h3 className="font-semibold text-foreground group-hover:text-amber-700 transition-colors line-clamp-2">
+                      {genre.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {genre.book_count.toLocaleString()} books
+                    </p>
 
-                  <Button
-                    variant="default"
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onGenreSelect(genre);
-                    }}
-                  >
-                    Browse Books
-                  </Button>
+                    <Button
+                      variant="default"
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGenreSelect(genre);
+                      }}
+                    >
+                      Browse Books
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* All Genres Section */}
+      {/* All Genres Section (Regular gradient backgrounds) */}
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-foreground">All Genres</h2>
         
@@ -113,7 +135,7 @@ const GenresList = ({ genres, popularGenres, loading, onGenreSelect, onNavigateB
                 className="bg-card rounded-lg border border-border overflow-hidden group hover:shadow-lg transition-all duration-300 cursor-pointer"
                 onClick={() => onGenreSelect(genre)}
               >
-                {/* Genre Card */}
+                {/* Genre Card with Gradient Background */}
                 <div className="h-40 relative bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center">
                   <Library className="h-12 w-12 text-primary" />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />

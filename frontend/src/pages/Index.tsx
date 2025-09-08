@@ -71,7 +71,7 @@ const Index = () => {
   const handleBookClick = (book: Book) => {
     const slug = book.link.split('/').filter(Boolean).pop();
     if (slug) {
-      navigate(`/book/${slug}`, {
+      navigate(`/dashboard/book/${slug}`, {
         state: {
           fromSearch: true,
           searchQuery: new URLSearchParams(location.search).get('q') || '',

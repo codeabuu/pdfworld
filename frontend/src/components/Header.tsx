@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Search, Menu, X, User, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils"; // Make sure you have this utility
 
 interface HeaderProps {
   onSearch: (results: any[]) => void;
@@ -14,6 +15,7 @@ const Header = ({ onSearch }: HeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +43,14 @@ const Header = ({ onSearch }: HeaderProps) => {
     { name: "Magazines & News Papers", href: "/magazines" },
     { name: "Pricing", href: "/pricing" },
   ];
+
+  // Check if a nav item is active
+  const isActive = (href: string) => {
+    if (href === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(href);
+  };
 
   // Show loading state while checking auth status
   if (isLoading) {
@@ -84,9 +94,17 @@ const Header = ({ onSearch }: HeaderProps) => {
               <Link
                 key={item.name}
                 to={item.href}
-                className="text-muted-foreground hover:text-foreground transition-colors duration-200 font-medium"
+                className={cn(
+                  "transition-colors duration-200 font-medium relative",
+                  isActive(item.href)
+                    ? "text-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
                 {item.name}
+                {isActive(item.href) && (
+                  <span className="absolute -bottom-7 left-0 right-0 h-0.5 bg-primary"></span>
+                )}
               </Link>
             ))}
           </nav>
@@ -136,23 +154,52 @@ const Header = ({ onSearch }: HeaderProps) => {
               className="pl-10 w-full bg-secondary/50 border-border focus:border-primary"
               disabled={isSearching}
             />
+            {searchQuery.trim() && (
+              <Button
+                type="submit"
+                size="sm"
+                variant="secondary"
+                className="absolute right-1 top-1/2 -translate-y-1/2 px-3 h-7 bg-background hover:bg-accent text-foreground border"
+                disabled={isSearching}
+              >
+                {isSearching ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1" />
+                ) : null}
+                Go
+              </Button>
+            )}
           </form>
         </div>
 
         {/* Mobile Search */}
-        <div className="md:hidden py-4 border-t border-border">
-          <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search books, authors, genres..."
-              className="pl-10 bg-secondary/50 border-border"
-              disabled={isSearching}
-            />
-          </form>
-        </div>
-
+<div className="md:hidden py-4 border-t border-border">
+  <form onSubmit={handleSearch} className="relative flex gap-2">
+    <div className="relative flex-1">
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search books, authors, genres..."
+        className="pl-10 pr-4 w-full bg-secondary/50 border-border"
+        disabled={isSearching}
+      />
+    </div>
+    {searchQuery.trim() && (
+      <Button
+        type="submit"
+        variant="secondary"
+        size="sm"
+        className="h-10 px-4 bg-background hover:bg-accent text-foreground border whitespace-nowrap"
+        disabled={isSearching}
+      >
+        {isSearching ? (
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1" />
+        ) : null}
+        Search
+      </Button>
+    )}
+  </form>
+</div>
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
@@ -161,7 +208,12 @@ const Header = ({ onSearch }: HeaderProps) => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className="block text-muted-foreground hover:text-foreground transition-colors duration-200 font-medium"
+                  className={cn(
+                    "block transition-colors duration-200 font-medium",
+                    isActive(item.href)
+                      ? "text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}

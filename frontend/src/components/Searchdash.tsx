@@ -74,8 +74,8 @@ export default function SearchDash({
   const handleBookClick = (book: SearchResult) => {
     const slug = book.link.split('/').filter(Boolean).pop();
     if (slug) {
-      navigate(`/book/${slug}`, {
-        state: { 
+      navigate(`/dashboard/book/${slug}`, {
+        state: {
           bookData: book,
           fromSearch: true,
           searchQuery: query
