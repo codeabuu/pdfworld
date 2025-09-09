@@ -11,20 +11,58 @@ export const genreImages: Record<string, string> = {
   // Nonfiction - add specific mapping
   'Nonfiction': '/Nonfiction.png',
   'nonfiction': '/Nonfiction.png',
-  'non-fiction': '/Nonfiction.png',
+
+  'Historical Fiction': '/HistoricalFiction.png',
+  'historical fiction': '/HistoricalFiction.png',
+
+  'Paranormal': '/Paranormal.png',
+  'paranormal': '/Paranormal.png',
+
+  'Science Fiction': '/ScienceFiction.png',
+  'science fiction': '/ScienceFiction.png',
+
 
   'contemporary': '/Contemporary.png',
   'Contemporary': '/Contemporary.png',
+
+  'contemporary romance': '/ContemporaryRomance.png',
+  'Contemporary Romance': '/ContemporaryRomance.png',
+
+  'Historical': '/Historical.png',
+  'historical': '/Historical.png',
+
+  'Magazines & Newspapers': '/Mags.png',
+  'magazines & newspapers': '/Mags.png',
+
+  'Young Adult': '/youngadult.png',
+  'young adult': '/youngadult.png',
   // Add more specific mappings for your popular genres
   'Mystery': '/Mystery.png',
   'mystery': '/Mystery.png',
 
-  'Science Fiction': '/ScienceFiction.png',
-  'science-fiction': '/ScienceFiction.png',
-  'sci-fi': '/ScienceFiction.png',
-  
   'Fantasy': '/Fantasy1.png',
   'fantasy': '/Fantasy1.png',
+
+  'Thriller': '/Thriller.png',
+  'thriller': '/Thriller.png',
+
+  'History': '/History.png',
+  'history': '/History.png',
+
+  'crime': '/Crime.png',
+  'Crime': '/Crime.png',
+
+  'Suspense': '/Suspence.png',
+  'suspense': '/Suspence.png',
+
+  'childrens': '/Children.png',
+  'Childrens': '/Children.png',
+
+  'Mystery Thriller': '/MysteryTh.png',
+  'mystery thriller': '/MysteryTh.png',
+
+  'Adult': '/Adult.png',
+  'adult': '/Adult.png',
 
   // Default fallback
   'default': '/images/genres/default.jpg'

@@ -1,4 +1,3 @@
-// Dashboard.tsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,10 @@ import {
   CreditCard,
   ChevronDown,
   Settings,
-  HelpCircle
+  HelpCircle,
+  Home,
+  BookOpen,
+  Newspaper
 } from "lucide-react";
 import { getNewReleases, getGenres, getMagazines, searchBooks } from "@/lib/api";
 import { 
@@ -31,7 +33,7 @@ import { NewReleasesSection } from "./Newreleasessection";
 import { GenresSection} from "./Genressection";
 import { MagazinesSection } from "./Magazinesection";
 import { SearchResults } from "./Searchresults";
-import { renderLoadingSkeleton, navItems, getHighQualityImage } from "@/lib/utils";
+import { renderLoadingSkeleton } from "@/lib/utils";
 import { authService } from "@/services/Myauthservice";
 import { subscriptionService } from "@/services/subservice";
 import axios from "axios";
@@ -57,6 +59,14 @@ interface Subscription {
   message?: string;
 }
 
+// Define navigation items
+const navItems = [
+  { name: "Dashboard", path: "/dashboard", icon: Home },
+  { name: "New Releases", path: "/dashboard/releases", icon: BookOpen },
+  { name: "Genres", path: "/dashboard/genres", icon: Library },
+  { name: "Magazines", path: "/dashboard/magazines", icon: Newspaper },
+];
+
 const Dashboard = ({ children }: DashboardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,7 +91,7 @@ const Dashboard = ({ children }: DashboardProps) => {
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const isSearchMode = queryParams.has("q");
-  const isDashboardHome = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+  const isDashboardHome = location.pathname === '/dashboard';
 
   useEffect(() => {
     fetchDashboardData();
@@ -119,7 +129,7 @@ const Dashboard = ({ children }: DashboardProps) => {
       setNewReleases(releasesResponse.results.slice(0, 4));
       
       const popularGenres = genresResponse.results
-        .sort((a: Genre, b: Genre) => b.count - a.count)
+        .sort((a: Genre, b: Genre) => b.book_count - a.book_count)
         .slice(0, 10);
       setGenres(popularGenres);
       
@@ -205,7 +215,7 @@ const Dashboard = ({ children }: DashboardProps) => {
   };
 
   const handleMagazineClick = (magazine: Magazine) => {
-    navigate(`/magazines`);
+    navigate(`/dashboard/magazines`);
     setIsMobileMenuOpen(false);
   };
 
@@ -376,19 +386,27 @@ const Dashboard = ({ children }: DashboardProps) => {
       <div className="sm:hidden bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="container-custom py-3">
           <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="flex items-center gap-2"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Menu className="h-4 w-4" />
-              )}
-              Menu
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="flex items-center gap-2"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-4 w-4" />
+                ) : (
+                  <Menu className="h-4 w-4" />
+                )}
+                {isMobileMenuOpen ? "Close" : "Menu"}
+              </Button>
+              
+              {/* Library Logo/Brand */}
+              <div className="flex items-center gap-2">
+                <Library className="h-5 w-5 text-amber-600" />
+                <span className="text-sm font-medium text-foreground">Library</span>
+              </div>
+            </div>
             
             {/* Mobile Search Toggle */}
             <Button
@@ -436,24 +454,111 @@ const Dashboard = ({ children }: DashboardProps) => {
       {isMobileMenuOpen && (
         <div className="sm:hidden fixed inset-0 z-40 bg-white pt-20">
           <div className="container-custom">
-            <div className="space-y-2">
-              {navItems.map((item) => {
-                const IconComponent = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <Button
-                    key={item.name}
-                    onClick={() => handleNavItemClick(item.path)}
-                    className={`w-full justify-start gap-3 py-4 text-left 
-                             ${isActive 
-                               ? 'bg-amber-600 text-white' 
-                               : 'bg-white text-foreground hover:bg-amber-50'}`}
-                  >
-                    <IconComponent className="h-5 w-5" />
-                    <span className="text-base">{item.name}</span>
-                  </Button>
-                );
-              })}
+            <div className="space-y-4">
+              {/* User Profile Section */}
+              <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg mb-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                  <User className="h-6 w-6 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user?.email || "User"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription ? (
+                      <span className="flex items-center gap-1">
+                        {subscription.status === "trialing" ? "Free Trial" : subscription.status}
+                      </span>
+                    ) : (
+                      "Free Plan"
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Navigation Items */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
+                  Navigation
+                </h3>
+                {navItems.map((item) => {
+                  const IconComponent = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Button
+                      key={item.name}
+                      onClick={() => handleNavItemClick(item.path)}
+                      className={`w-full justify-start gap-3 py-4 text-left rounded-xl
+                               ${isActive 
+                                 ? 'bg-amber-600 text-white' 
+                                 : 'bg-white text-foreground hover:bg-amber-50'}`}
+                    >
+                      <IconComponent className="h-5 w-5" />
+                      <span className="text-base font-medium">{item.name}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {/* Account Section */}
+              <div className="space-y-2 pt-4 border-t border-gray-200">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
+                  Account
+                </h3>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    navigate("/subscription");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start gap-3 py-4 text-left rounded-xl hover:bg-amber-50"
+                >
+                  <CreditCard className="h-5 w-5" />
+                  <span className="text-base font-medium">Subscription</span>
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    navigate("/profile");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start gap-3 py-4 text-left rounded-xl hover:bg-amber-50"
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="text-base font-medium">Settings</span>
+                </Button>
+              </div>
+
+              {/* Help Section */}
+              <div className="space-y-2 pt-4 border-t border-gray-200">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
+                  Help
+                </h3>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    // Add help navigation logic
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start gap-3 py-4 text-left rounded-xl hover:bg-amber-50"
+                >
+                  <HelpCircle className="h-5 w-5" />
+                  <span className="text-base font-medium">Help & Support</span>
+                </Button>
+              </div>
+
+              {/* Logout Button */}
+              <div className="pt-4 border-t border-gray-200">
+                <Button
+                  variant="ghost"
+                  onClick={handleLogout}
+                  className="w-full justify-start gap-3 py-4 text-left rounded-xl text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="text-base font-medium">Logout</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

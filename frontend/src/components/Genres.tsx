@@ -139,7 +139,7 @@ const Genres = () => {
 
   const handlePageChange = async (page: number) => {
     if (selectedGenre && page >= 1) {
-      navigate(`/genres?genre=${selectedGenre.slug}&page=${page}`, { replace: false });
+      navigate(`/dashboard/genres?genre=${selectedGenre.slug}&page=${page}`, { replace: false });
     }
   };
 

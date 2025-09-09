@@ -199,7 +199,7 @@ const BookDiscovery = () => {
   };
 
   const handleMagazineClick = (magazine: Magazine) => {
-    navigate(`/magazines`, {
+    navigate(`/dashboard/magazines`, {
       state: { magazineData: magazine }
     });
   };

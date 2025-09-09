@@ -34,6 +34,66 @@ interface BookDetails {
   }>;
 }
 
+// Download notification component
+const DownloadNotification = ({ 
+  message, 
+  onClose 
+}: { 
+  message: string; 
+  onClose: () => void; 
+}) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+      <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center justify-between min-w-80">
+        <div className="flex items-center">
+          <svg 
+            className="w-5 h-5 mr-3" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth="2" 
+              d="M5 13l4 4L19 7"
+            ></path>
+          </svg>
+          <span>{message}</span>
+        </div>
+        <button 
+          onClick={onClose}
+          className="ml-4 text-white hover:text-green-200"
+        >
+          <svg 
+            className="w-4 h-4" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth="2" 
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function BookDetail() {
   const { book_slug } = useParams();
   const [book, setBook] = useState<BookDetails | null>(null);
@@ -42,6 +102,8 @@ export default function BookDetail() {
   const navigate = useNavigate();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
+  const [downloadComplete, setDownloadComplete] = useState(false);
+  const [downloadMessage, setDownloadMessage] = useState('');
 
   useEffect(() => {
     const fetchBookDetails = async () => {
@@ -84,7 +146,10 @@ export default function BookDetail() {
   const handleDownload = async (type: string) => {
     try {
       setDownloadingType(type);
+      setIsDownloading(true);
       setError('');
+      setDownloadComplete(false);
+      
       if (!book?.book_link) {
         throw new Error("Book link not available");
       }
@@ -109,21 +174,37 @@ export default function BookDetail() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${book.metadata.full_book_name}.pdf`;
+      a.download = `${book.metadata.full_book_name}.${type.toLowerCase()}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+
+      // Show success notification
+      setDownloadComplete(true);
+      setDownloadMessage(`Download completed successfully! Your ${type} file is ready.`);
+      
     } catch (err) {
       console.error("Download failed:", err);
       setError(err instanceof Error ? err.message : "Download failed. Please try again.");
+      
+      // Show error notification
+      setDownloadComplete(true);
+      setDownloadMessage("Download failed. Please try again.");
+      
     } finally {
       setDownloadingType(null);
+      setIsDownloading(false);
     }
   };
 
   const handleBack = () => {
-    navigate(-1); // Simple back navigation
+    navigate(-1);
+  };
+
+  const closeNotification = () => {
+    setDownloadComplete(false);
+    setDownloadMessage('');
   };
 
   if (loading) return <div className="container mx-auto py-8 px-4 text-center">Loading book details...</div>;
@@ -132,6 +213,14 @@ export default function BookDetail() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      {/* Download Notification */}
+      {downloadComplete && (
+        <DownloadNotification 
+          message={downloadMessage} 
+          onClose={closeNotification} 
+        />
+      )}
+
       <div className="container mx-auto py-8 px-4">
         <Button variant="ghost" onClick={handleBack} className="mb-4">
           ← Back
@@ -248,6 +337,35 @@ export default function BookDetail() {
                   </Button>
                 ))}
               </div>
+              
+              {/* Download status message */}
+              {isDownloading && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-700 flex items-center">
+                    <svg 
+                      className="animate-spin h-4 w-4 mr-2 text-blue-600" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      fill="none" 
+                      viewBox="0 0 24 24"
+                    >
+                      <circle 
+                        className="opacity-25" 
+                        cx="12" 
+                        cy="12" 
+                        r="10" 
+                        stroke="currentColor" 
+                        strokeWidth="4"
+                      ></circle>
+                      <path 
+                        className="opacity-75" 
+                        fill="currentColor" 
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Preparing your download...
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
