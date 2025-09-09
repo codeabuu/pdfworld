@@ -17,7 +17,7 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "a8da36aee0c2.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "6a78d7decc8c.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [

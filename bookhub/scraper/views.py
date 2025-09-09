@@ -564,7 +564,7 @@ def genres(request):
     # This calls scrape_genres() which uses your main link
     results = scrape_genres()
     parsed_results = parse_genres(results)
-    cache.set(cache_key, parsed_results, timeout=60 * 60 * 24)
+    cache.set(cache_key, parsed_results, timeout=60 * 60 * 24 * 7)
 
     return Response({
         'source': 'OceanofPDF Genres',
