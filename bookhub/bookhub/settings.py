@@ -17,7 +17,7 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "6a78d7decc8c.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "543ec0e9da28.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
@@ -27,7 +27,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:6379"    # Common React dev server port
 ]
 
-CORS_ALLOW_CREDENTIALS = True  # ← ADD THIS LINE (CRITICAL!)
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     'content-type',

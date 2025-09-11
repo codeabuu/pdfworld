@@ -24,7 +24,8 @@ from subscriptions.views import (
     check_subscription_status, 
     start_paid_subscription, 
     create_recurring_subscription,
-    cancel_subscription
+    cancel_subscription,
+    create_test_payment
     )
 
 urlpatterns = [
@@ -61,5 +62,7 @@ urlpatterns = [
 
     path('api/refresh-token/', refresh_token, name='refresh_token'),
     path('api/check-auth/', check_auth_status, name='check_auth_status'),
+
+    path('payment/test/', create_test_payment, name='test_payment'),
 
 ]

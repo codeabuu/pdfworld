@@ -319,20 +319,106 @@ def paystack_webhook(request):
         print(f"Webhook error: {e}")
         return HttpResponse(status=500)
 
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import redirect
+from django.http import JsonResponse
+import requests
+from subscriptions.models import PaymentMethod, Subscription
+from subscriptions.utils import verify_transaction
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
+
+User = get_user_model()
+
 @csrf_exempt
 def payment_callback(request):
     """
-    After Paystack payment, logout the user and redirect to login page.
+    Handle Paystack payment callback and capture authorization codes.
     """
-    # Call logout API (assuming it's exposed at /api/logout/)
+    reference = request.GET.get('reference')
+    
+    if not reference:
+        return redirect("/login?error=no_reference")
+    
+    # Verify the transaction with Paystack
+    verification = verify_transaction(reference)
+    
+    if not verification.get('status'):
+        return redirect(f"/login?error=verification_failed&message={verification.get('message', 'Unknown error')}")
+    
+    transaction_data = verification['data']
+    
+    if transaction_data['status'] != 'success':
+        return redirect(f"/login?error=payment_failed&message={transaction_data.get('gateway_response', 'Payment failed')}")
+    
+    # Extract authorization code from successful transaction
+    authorization_data = transaction_data.get('authorization', {})
+    authorization_code = authorization_data.get('authorization_code')
+    
+    if not authorization_code:
+        return redirect("/login?error=no_authorization_code")
+    
+    # Get user ID from metadata (you should set this during payment initialization)
+    metadata = transaction_data.get('metadata', {})
+    user_id = metadata.get('user_id')
+    
+    if not user_id:
+        # Try to get user from customer email as fallback
+        customer_email = transaction_data.get('customer', {}).get('email')
+        if customer_email:
+            try:
+                user = User.objects.get(email=customer_email)
+                user_id = user.id
+            except User.DoesNotExist:
+                pass
+    
+    if not user_id:
+        return redirect("/login?error=user_not_found")
+    
     try:
-        logout_url = request.build_absolute_uri("/api/logout/")
-        requests.post(logout_url, cookies=request.COOKIES, timeout=5)
+        # Create or update payment method
+        payment_method, created = PaymentMethod.objects.update_or_create(
+            user_id=user_id,
+            defaults={
+                'authorization_code': authorization_code,
+                'customer_code': transaction_data.get('customer', {}).get('customer_code', ''),
+                'last4': authorization_data.get('last4', ''),
+                'card_type': authorization_data.get('card_type', ''),
+                'bank': authorization_data.get('bank', ''),
+                'exp_month': str(authorization_data.get('exp_month', '')),
+                'exp_year': str(authorization_data.get('exp_year', '')),
+                'reusable': authorization_data.get('reusable', False)
+            }
+        )
+        
+        # Create or update subscription
+        subscription, sub_created = Subscription.objects.update_or_create(
+            user_id=user_id,
+            defaults={
+                'payment_method': payment_method,
+                'plan': 'trial',
+                'status': 'trialing',
+                'trial_start': timezone.now(),
+                'trial_end': timezone.now() + timedelta(days=7),
+                'trial_used': False,
+                'current_period_start': timezone.now(),
+            }
+        )
+        
+        # Call logout API (assuming it's exposed at /api/logout/)
+        try:
+            logout_url = request.build_absolute_uri("/api/logout/")
+            requests.post(logout_url, cookies=request.COOKIES, timeout=5)
+        except Exception as e:
+            print(f"Logout call failed: {e}")
+        
+        # Redirect to success page
+        return redirect("/login?payment=success")
+        
     except Exception as e:
-        print(f"Logout call failed: {e}")
-
-    # Redirect user to login page (adjust URL if frontend runs separately)
-    return redirect("/login")
+        print(f"Error processing payment callback: {e}")
+        return redirect(f"/login?error=processing_error&message={str(e)}")
 
 
 @csrf_exempt
@@ -570,3 +656,62 @@ def cancel_subscription(request):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"error": "Internal server error"}, status=500)
+    
+
+@csrf_exempt
+def create_test_payment(request):
+    """Create a test payment (for development only)"""
+    user = request.user
+    
+    # For test mode, we'll simulate a successful payment
+    test_auth_codes = [
+        "AUTH_72btv2fq12",  # Test visa card
+        "AUTH_8dh2bafq93",  # Test mastercard
+        "AUTH_x1p3h5fq47",  # Test verve card
+    ]
+    
+    # Select a test auth code based on user ID
+    import hashlib
+    user_hash = hashlib.md5(str(user.id).encode()).hexdigest()
+    test_index = int(user_hash, 16) % len(test_auth_codes)
+    auth_code = test_auth_codes[test_index]
+    
+    try:
+        # Create test payment method
+        payment_method, created = PaymentMethod.objects.update_or_create(
+            user_id=user.id,
+            defaults={
+                'authorization_code': auth_code,
+                'customer_code': f"CUST_TEST_{user.id}",
+                'last4': '1234',
+                'card_type': 'visa',
+                'bank': 'Test Bank',
+                'exp_month': '12',
+                'exp_year': '2025',
+                'reusable': True
+            }
+        )
+        
+        # Create test subscription
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        subscription, sub_created = Subscription.objects.update_or_create(
+            user_id=user.id,
+            defaults={
+                'payment_method': payment_method,
+                'plan': 'trial',
+                'status': 'trialing',
+                'trial_start': timezone.now(),
+                'trial_end': timezone.now() + timedelta(days=7),
+                'trial_used': False,
+                'current_period_start': timezone.now(),
+                'amount': 0.00
+            }
+        )
+        
+        return redirect("/login?payment=success&test_mode=true")
+        
+    except Exception as e:
+        print(f"Error creating test payment: {e}")
+        return redirect(f"/payment-error?error={str(e)}")

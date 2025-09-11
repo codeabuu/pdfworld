@@ -36,7 +36,7 @@ def _set_session_cookies(response, session, remember_me=True):
 
 @csrf_exempt
 @require_POST
-@ratelimit(key='ip', rate='3/h', block=False) 
+@ratelimit(key='ip', rate='5/h', block=False) 
 def signup(request):
     if getattr(request, "limited", False):
         return JsonResponse(
@@ -55,23 +55,74 @@ def signup(request):
             return JsonResponse({"error": "Email and password required"}, status=400)
 
         supabase = get_supabase()
+        
+        # Check if user with this email already exists
+        try:
+            existing_user = supabase.auth.admin.list_users()
+            # Filter users by email (you might need to adjust this based on your Supabase setup)
+            for user in existing_user:
+                if user.email == email:
+                    return JsonResponse(
+                        {"error": "User with this email already exists"}, 
+                        status=409
+                    )
+        except Exception as e:
+            # If we can't check existing users, proceed but the sign_up will fail
+            pass
+        
+        # Alternative approach: Use Supabase's built-in email check
+        # This might be more reliable as Supabase will naturally reject duplicate emails
         res = supabase.auth.sign_up({
             "email": email,
             "password": password,
-            "firstName": first_name,
-            "lastName": last_name
+            "options": {
+                "data": {
+                    "firstName": first_name,
+                    "lastName": last_name
+                }
+            }
         })
+
+        # Check if signup failed due to existing user
+        if hasattr(res, 'error') and res.error:
+            if 'already registered' in res.error.message.lower() or 'exists' in res.error.message.lower():
+                return JsonResponse(
+                    {"error": "User with this email already exists"}, 
+                    status=409
+                )
+            else:
+                # Re-raise other errors
+                raise Exception(res.error.message)
 
         # Convert result
         out = res.model_dump() if hasattr(res, "model_dump") else res
-        response = JsonResponse(out, status=201)
+        
+        # Check if user was created successfully
+        if out.get('user') and not out.get('user').get('confirmed_at'):
+            # User created but needs email confirmation
+            response = JsonResponse({
+                "message": "Signup successful. Please check your email to confirm your account.",
+                "user": out.get('user')
+            }, status=201)
+        else:
+            response = JsonResponse(out, status=201)
 
         session = out.get("session") or {}
         _set_session_cookies(response, session, remember_me)
         return response
+        
     except Exception as e:
         import traceback
         traceback.print_exc()
+        
+        # Handle specific duplicate email error
+        error_msg = str(e).lower()
+        if 'already registered' in error_msg or 'exists' in error_msg or 'duplicate' in error_msg:
+            return JsonResponse(
+                {"error": "User with this email already exists"}, 
+                status=409
+            )
+        
         return JsonResponse({"error": str(e)}, status=500)
 
 
