@@ -37,6 +37,8 @@ import { renderLoadingSkeleton } from "@/lib/utils";
 import { authService } from "@/services/Myauthservice";
 import { subscriptionService } from "@/services/subservice";
 import axios from "axios";
+import ProfileSettingsModal from "@/components/ProfileSetModal";
+import ManageSubscriptionModal from "./ManageSubscriptionModal";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -47,7 +49,7 @@ interface DashboardProps {
 interface UserData {
   id: string;
   email: string;
-  created_at?: string;
+  name?: string;
 }
 
 interface Subscription {
@@ -92,6 +94,8 @@ const Dashboard = ({ children }: DashboardProps) => {
 
   const isSearchMode = queryParams.has("q");
   const isDashboardHome = location.pathname === '/dashboard';
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -156,11 +160,12 @@ const Dashboard = ({ children }: DashboardProps) => {
         const response = await axios.get(`${API_BASE_URL}/api/me/`);
         const userData = response.data.user || response.data;
         const userEmail = userData.email || "Unknown";
+        const userName = userData.name || "";
         
         setUser({
           id: userId,
           email: userEmail,
-          created_at: userData.created_at
+          name: userName
         });
 
         // Fetch subscription status
@@ -171,7 +176,7 @@ const Dashboard = ({ children }: DashboardProps) => {
         setUser({
           id: userId,
           email: "Unknown",
-          created_at: undefined
+          name: "Unknown"
         });
       }
     } catch (error) {
@@ -334,7 +339,7 @@ const Dashboard = ({ children }: DashboardProps) => {
                   size="sm"
                   className="w-full mt-2 text-xs"
                   onClick={() => {
-                    navigate("/subscription");
+                    setIsSubscriptionModalOpen(true);
                     setIsProfileDropdownOpen(false);
                   }}
                 >
@@ -348,17 +353,12 @@ const Dashboard = ({ children }: DashboardProps) => {
                 <button
                   className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
                   onClick={() => {
-                    navigate("/testprofile");
+                    setIsProfileModalOpen(true);
                     setIsProfileDropdownOpen(false);
                   }}
                 >
                   <User className="h-4 w-4 text-muted-foreground" />
                   Profile & Settings
-                </button>
-                
-                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                  Settings
                 </button>
                 
                 <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
@@ -714,6 +714,19 @@ const Dashboard = ({ children }: DashboardProps) => {
             {children || <Outlet />}
           </>
         )}
+        {/* Add this at the end of your dashboard component's return statement */}
+<ProfileSettingsModal
+  isOpen={isProfileModalOpen}
+  onClose={() => setIsProfileModalOpen(false)}
+  user={user}
+  subscription={subscription}
+/>
+<ManageSubscriptionModal
+  isOpen={isSubscriptionModalOpen}
+  onClose={() => setIsSubscriptionModalOpen(false)}
+  subscription={subscription}
+  user={user}
+/>
       </div>
     </div>
   );

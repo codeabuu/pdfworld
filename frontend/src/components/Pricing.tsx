@@ -31,6 +31,8 @@ import {
 } from "@/utils/subRedirect";
 import { subscriptionService } from "@/services/subservice";
 import axios from "axios";
+import ManageSubscriptionModal from "./ManageSubscriptionModal";
+import ProfileSettingsModal from "./ProfileSetModal";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -57,6 +59,8 @@ const Pricing = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -465,36 +469,31 @@ const Pricing = () => {
                   )}
 
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-2 text-xs"
-                    onClick={() => {
-                      navigate("/subscription");
-                      setIsProfileDropdownOpen(false);
-                    }}
-                  >
-                    <CreditCard className="h-3 w-3 mr-2" />
-                    Manage Subscription
-                  </Button>
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2 text-xs"
+                  onClick={() => {
+                    setIsSubscriptionModalOpen(true);
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <CreditCard className="h-3 w-3 mr-2" />
+                  Manage Subscription
+                </Button>
                 </div>
 
                 {/* Settings Links */}
                 <div className="px-4 py-2 border-b border-gray-100">
-                  <button
-                    className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
-                    onClick={() => {
-                      navigate("/testprofile");
-                      setIsProfileDropdownOpen(false);
-                    }}
-                  >
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    Profile & Settings
-                  </button>
-
-                  <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                    Settings
-                  </button>
+                <button
+                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
+                  onClick={() => {
+                    setIsProfileModalOpen(true);
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Profile & Settings
+                </button>
 
                   <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
                     <HelpCircle className="h-4 w-4 text-muted-foreground" />
@@ -745,6 +744,18 @@ const Pricing = () => {
               Contact support
             </span>
           </p>
+          <ProfileSettingsModal
+  isOpen={isProfileModalOpen}
+  onClose={() => setIsProfileModalOpen(false)}
+  user={user}
+  subscription={subscription}
+/>
+<ManageSubscriptionModal
+  isOpen={isSubscriptionModalOpen}
+  onClose={() => setIsSubscriptionModalOpen(false)}
+  subscription={subscription}
+  user={user}
+/>
         </div>
       </div>
     </section>

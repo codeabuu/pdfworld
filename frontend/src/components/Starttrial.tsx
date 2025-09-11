@@ -8,6 +8,8 @@ import { CheckCircle, XCircle, Loader2, User, ChevronDown, CreditCard, Settings,
 import { subscriptionService } from '@/services/subservice';
 import { authService } from '@/services/Myauthservice';
 import axios from 'axios';
+import ProfileSettingsModal from './ProfileSetModal';
+import ManageSubscriptionModal from './ManageSubscriptionModal';
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -36,6 +38,9 @@ const StartTrial = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   useEffect(() => {
     checkEligibility();
@@ -226,7 +231,7 @@ const StartTrial = () => {
                   size="sm"
                   className="w-full mt-2 text-xs"
                   onClick={() => {
-                    navigate("/subscription");
+                    setIsSubscriptionModalOpen(true);
                     setIsProfileDropdownOpen(false);
                   }}
                 >
@@ -240,17 +245,12 @@ const StartTrial = () => {
                 <button
                   className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
                   onClick={() => {
-                    navigate("/testprofile");
+                    setIsProfileModalOpen(true);
                     setIsProfileDropdownOpen(false);
                   }}
                 >
                   <User className="h-4 w-4 text-muted-foreground" />
                   Profile & Settings
-                </button>
-                
-                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                  Settings
                 </button>
                 
                 <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
@@ -341,6 +341,18 @@ const StartTrial = () => {
           </div>
         </CardContent>
       </Card>
+      <ProfileSettingsModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        subscription={subscription}
+      />
+      <ManageSubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        subscription={subscription}
+        user={user}
+      />
     </div>
   );
 };

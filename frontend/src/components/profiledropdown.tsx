@@ -7,13 +7,14 @@ import {
   User,
   ChevronDown,
   CreditCard,
-  Settings,
   HelpCircle,
   LogOut,
 } from "lucide-react";
 import { authService } from "@/services/Myauthservice";
 import { subscriptionService } from "@/services/subservice";
 import { useToast } from "@/components/ui/use-toast";
+import ProfileSettingsModal from "./ProfileSetModal";
+import ManageSubscriptionModal from "./ManageSubscriptionModal";
 
 interface ProfileDropdownProps {
   user: any;
@@ -22,6 +23,10 @@ interface ProfileDropdownProps {
 
 const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -126,18 +131,16 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
               </p>
             )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full mt-2 text-xs"
+            <button
+              className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
               onClick={() => {
-                navigate("/subscription");
+                setIsSubscriptionModalOpen(true);
                 setIsOpen(false);
               }}
             >
-              <CreditCard className="h-3 w-3 mr-2" />
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
               Manage Subscription
-            </Button>
+            </button>
           </div>
 
           {/* Settings Links */}
@@ -145,17 +148,12 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
             <button
               className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
               onClick={() => {
-                navigate("/testprofile");
+                setIsProfileModalOpen(true);
                 setIsOpen(false);
               }}
             >
               <User className="h-4 w-4 text-muted-foreground" />
               Profile & Settings
-            </button>
-
-            <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              Settings
             </button>
 
             <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
@@ -176,7 +174,22 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
           </div>
         </div>
       )}
+      <ProfileSettingsModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        subscription={subscription}
+      />
+
+      <ManageSubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        subscription={subscription}
+        user={user}
+      />
     </div>
+
+    
   );
 };
 
