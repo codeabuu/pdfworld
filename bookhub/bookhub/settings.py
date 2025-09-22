@@ -17,7 +17,7 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "543ec0e9da28.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "85f2ae251fab.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
@@ -116,8 +116,7 @@ CRONJOBS = [
 
 WSGI_APPLICATION = 'bookhub.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
 SUPABASE_DB_URL = config('SUPABASE_DB_URL', default=None)
 
 import dj_database_url
@@ -162,8 +161,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 

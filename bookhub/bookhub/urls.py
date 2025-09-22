@@ -15,7 +15,18 @@ from scraper.views import (
 from django.contrib import admin
 from django.urls import path
 from customers.views import me
-from customers.auth_views import signup, login, logout, refresh_token, check_auth_status
+from customers.auth_views import (
+    signup, 
+    login, 
+    logout,
+    refresh_token, 
+    check_auth_status, 
+    change_password, 
+    forgot_password, 
+    reset_password, 
+    resend_confirmation_email, 
+    check_email_confirmation
+)
 from subscriptions.views import (
     paystack_webhook, 
     start_trial, 
@@ -63,6 +74,13 @@ urlpatterns = [
     path('api/refresh-token/', refresh_token, name='refresh_token'),
     path('api/check-auth/', check_auth_status, name='check_auth_status'),
 
+    path('api/change-password/', change_password, name='change_password'),
+
+    path('api/forgot-password/', forgot_password, name='forgot_password'),
+    path('api/reset-password/', reset_password, name='reset_password'),
+
     path('payment/test/', create_test_payment, name='test_payment'),
 
+    path('api/resend-confirmation-email/', resend_confirmation_email, name='resend_confirmation_email'),
+    path('api/check-email-confirmation/', check_email_confirmation, name='check_email_confirmation'),
 ]
