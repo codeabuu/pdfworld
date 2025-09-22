@@ -135,14 +135,13 @@ const SignUp = () => {
         form.lastName
       );
       
-      setSuccessMessage("Account created successfully! You can now sign in.");
       
       // Redirect to login after a short delay
       setTimeout(() => {
-        navigate("/login", { 
-          state: { message: "signup_success" } 
+        navigate("/confirm-email", { 
+          state: { message: "signup_success" }
         });
-      }, 3000);
+      });
       
     } catch (err: any) {
       setError(err.message || "Too many attempts, please try again later.");

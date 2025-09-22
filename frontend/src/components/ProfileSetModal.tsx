@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { authService } from "@/services/Myauthservice";
 import axios from "axios";
 import { Badge } from "@/components/ui/badge";
+import { ChangePasswordData, changePassword } from "@/lib/api";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -120,64 +121,62 @@ const ProfileSettingsModal = ({
     fetchUserData();
   }, [isOpen, propUser, toast]);
 
-  const handleSaveChanges = async () => {
-    setIsLoading(true);
-    try {
-      const token = authService.getAuthToken();
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-      
-      // If password change is in progress, handle that
-      if (isEditingPassword) {
-        if (newPassword !== confirmPassword) {
-          toast({
-            title: "Error",
-            description: "New passwords do not match.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        // Implement password change API call
-        await axios.post(
-          `${API_BASE_URL}/api/change-password/`,
-          {
-            current_password: currentPassword,
-            new_password: newPassword,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        
+const handleSaveChanges = async () => {
+  setIsLoading(true);
+  try {
+    // If password change is in progress, handle that
+    if (isEditingPassword) {
+      if (newPassword !== confirmPassword) {
         toast({
-          title: "Password updated",
-          description: "Your password has been changed successfully.",
+          title: "Error",
+          description: "New passwords do not match.",
+          variant: "destructive",
         });
-        
-        // Reset password fields
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setIsEditingPassword(false);
+        setIsLoading(false);
+        return;
       }
-      
-      onClose();
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.detail || error.message || "Failed to update profile. Please try again.",
-        variant: "destructive",
+
+      if (newPassword.length < 6) {
+        toast({
+          title: "Error",
+          description: "New password must be at least 6 characters.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Use the new API function
+      await changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword
       });
-    } finally {
-      setIsLoading(false);
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      
+      // Reset password fields
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setIsEditingPassword(false);
     }
-  };
+    
+    onClose();
+  } catch (error: any) {
+    console.error("Error updating password:", error);
+    toast({
+      title: "Error",
+      description: error.message || "Failed to update password. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";

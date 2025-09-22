@@ -18,6 +18,11 @@ import Profile from "./components/Profile.tsx";
 import PricingPage from "./pages/PricingPg.tsx";
 import Header from "./components/Header.tsx";
 import { useState } from "react";
+import ResetPasswordPage from "./components/Resetpass.tsx";
+import ResetPasswordHandler from "./components/Resetpasshand.tsx";
+import DebugResetPage from "./components/Debug.tsx";
+import EmailConfirmation from "./components/Emailconf.tsx";
+import ConfirmationRedirect from "./components/confredirect.tsx";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +63,7 @@ const App = () => (
         <Routes>
           <Route path="/testprofile" element={<Profile />} />
           <Route path="/" element={<Index />} />
+          
           <Route element={<MainLayout />}>
             <Route path="/search" element={<Index />} />
             <Route path="/releases" element={<Releases />} />
@@ -65,6 +71,11 @@ const App = () => (
             <Route path="/genres" element={<Genres />} />
             <Route path="/start-trial" element={<StartTrial />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/auth/reset" element={<ResetPasswordHandler />} />
+            <Route path="/debug-reset" element={<DebugResetPage />} />
+            <Route path="/confirm-email" element={<EmailConfirmation />} />
+            <Route path="/confirm-redirect" element={<ConfirmationRedirect />} />
           </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
