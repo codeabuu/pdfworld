@@ -114,16 +114,14 @@ def start_trial(request):
             email=email,
             amount=19900,
             callback_url="http://127.0.0.1:8080/login/",
-            metadata={"user_id": user_id, "plan": "trial"}
+            metadata={"user_id": user_id, "plan": "trial", "type": "subscription_payment"}
         )
         
         if not resp.get("status"):
             error_msg = resp.get("message", "Failed to initialize transaction")
             return JsonResponse({"error": error_msg}, status=400)
 
-        # DON'T create subscription here - wait for webhook confirmation
-        # Just return the Paystack URL for payment
-
+        
         return JsonResponse({
             "authorization_url": resp["data"]["authorization_url"],
             "reference": resp["data"]["reference"],
@@ -172,7 +170,7 @@ def verify_card(request):
             reusable=auth["reusable"],
         )
 
-        # Attach to user subscription (if subscription exists from webhook)
+
         Subscription.objects.filter(user_id=user_id, status="trialing").update(payment_method=pm)
 
         return JsonResponse({"success": True, "card_last4": pm.last4})
@@ -215,6 +213,43 @@ def paystack_webhook(request):
             
             if not user_id:
                 return HttpResponse(status=400)
+            
+            # 🔥 CRITICAL: CAPTURE AND SAVE CARD AUTHORIZATION
+            authorization_data = data.get("authorization", {})
+            authorization_code = authorization_data.get("authorization_code")
+            reusable = authorization_data.get("reusable", False)
+            
+            if authorization_code and reusable:
+                # Save payment method to database
+                customer_data = data.get("customer", {})
+                
+                try:
+                    payment_method, created = PaymentMethod.objects.update_or_create(
+                        authorization_code=authorization_code,
+                        defaults={
+                            'user_id': user_id,
+                            'customer_code': customer_data.get('customer_code', ''),
+                            'last4': authorization_data.get('last4', ''),
+                            'card_type': authorization_data.get('card_type', ''),
+                            'bank': authorization_data.get('bank', ''),
+                            'exp_month': str(authorization_data.get('exp_month', '')),
+                            'exp_year': str(authorization_data.get('exp_year', '')),
+                            'reusable': reusable
+                        }
+                    )
+                    
+                    if created:
+                        print(f"💳 NEW card saved for user {user_id}: ****{authorization_data.get('last4', '')}")
+                    else:
+                        print(f"💳 EXISTING card updated for user {user_id}: ****{authorization_data.get('last4', '')}")
+                        
+                except Exception as card_error:
+                    print(f"❌ Error saving card: {card_error}")
+            else:
+                if authorization_code:
+                    print(f"⚠️ Card not reusable: {authorization_code}")
+                else:
+                    print("⚠️ No authorization code in webhook")
 
             if payment_type == "subscription_payment" and plan_type in ["monthly", "yearly"]:
                 # Handle paid subscription
@@ -534,7 +569,6 @@ def start_paid_subscription(request):
             metadata={
                 "user_id": user_id,
                 "plan_type": plan_type,
-                # "plan_code": plan_code,
                 "type": "subscription_payment"
             }
         )
@@ -716,5 +750,386 @@ def create_test_payment(request):
         print(f"Error creating test payment: {e}")
         return redirect(f"/payment-error?error={str(e)}")
     
+###################################################################################
+# card management views
+###################################################################################
 
+import uuid
+from django.core.cache import cache
+
+# Add these views to your existing views.py
+@csrf_exempt
+@require_POST
+def get_customer_cards(request):
+    """
+    Get customer's saved payment methods
+    """
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        
+        if not user_id:
+            return JsonResponse({"error": "user_id is required"}, status=400)
+
+        # Get payment methods from database
+        payment_methods = PaymentMethod.objects.filter(user_id=user_id, reusable=True)
+        
+        cards = []
+        for pm in payment_methods:
+            cards.append({
+                "id": pm.id,
+                "authorization_code": pm.authorization_code,
+                "last4": pm.last4,
+                "card_type": pm.card_type,
+                "bank": pm.bank,
+                "exp_month": pm.exp_month,
+                "exp_year": pm.exp_year,
+                "brand": pm.card_type,  # Same as card_type for Paystack
+                "is_default": pm.is_default if hasattr(pm, 'is_default') else False,
+                "created_at": pm.created_at.isoformat() if pm.created_at else None
+            })
+        
+        return JsonResponse({"cards": cards})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Internal server error"}, status=500)
+
+@csrf_exempt
+@require_POST
+def initialize_card_update(request):
+    """
+    Initialize card update process - creates a verification payment
+    """
+    try:
+        data = json.loads(request.body)
+        email = data.get("email")
+        user_id = data.get("user_id")
+        action = data.get("action", "update")  # "update" or "add"
+        
+        if not email or not user_id:
+            return JsonResponse({"error": "Email and user_id are required"}, status=400)
+
+        # Create a unique reference for this card update
+        reference = f"card_update_{uuid.uuid4().hex[:10]}"
+        
+        # Small verification amount (100 kobo = 1 Naira)
+        amount = 100  # 1 Naira for card verification
+        
+        # Initialize transaction for card authorization
+        resp = initialize_transaction(
+            email=email,
+            amount=amount,
+            callback_url=f"{settings.FRONTEND_URL}/payment/card-update-callback",
+            metadata={
+                "user_id": user_id,
+                "action": action,
+                "type": "card_verification",
+                "reference": reference
+            }
+        )
+        
+        if not resp.get("status"):
+            error_msg = resp.get("message", "Failed to initialize card update")
+            return JsonResponse({"error": error_msg}, status=400)
+
+        # Store the reference in cache for verification
+        cache_key = f"card_update_{reference}"
+        cache.set(cache_key, {
+            "user_id": user_id,
+            "email": email,
+            "action": action,
+            "timestamp": timezone.now().isoformat()
+        }, timeout=3600)  # 1 hour expiration
+
+        return JsonResponse({
+            "authorization_url": resp["data"]["authorization_url"],
+            "reference": reference,
+            "access_code": resp["data"].get("access_code", ""),
+            "message": "Proceed to card verification"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Internal server error"}, status=500)
+
+@csrf_exempt
+@require_POST
+def verify_card_update(request):
+    """
+    Verify card update transaction and save the new card
+    """
+    try:
+        data = json.loads(request.body)
+        reference = data.get("reference")
+        user_id = data.get("user_id")
+        
+        if not reference or not user_id:
+            return JsonResponse({"error": "Reference and user_id are required"}, status=400)
+
+        # Verify the transaction with Paystack
+        resp = verify_transaction(reference)
+        if not resp.get("status"):
+            return JsonResponse({"error": "Card verification failed"}, status=400)
+
+        tx_data = resp["data"]
+        
+        if tx_data['status'] != 'success':
+            return JsonResponse({"error": "Payment failed"}, status=400)
+
+        authorization_data = tx_data.get("authorization", {})
+        customer_data = tx_data.get("customer", {})
+        
+        authorization_code = authorization_data.get("authorization_code")
+        if not authorization_code:
+            return JsonResponse({"error": "No authorization code received"}, status=400)
+
+        # Check if this card already exists for the user
+        existing_card = PaymentMethod.objects.filter(
+            user_id=user_id, 
+            authorization_code=authorization_code
+        ).first()
+        
+        if existing_card:
+            return JsonResponse({
+                "success": True,
+                "message": "Card already exists",
+                "card_last4": existing_card.last4,
+                "action": "existing"
+            })
+
+        # Create new payment method
+        new_card = PaymentMethod.objects.create(
+            user_id=user_id,
+            authorization_code=authorization_code,
+            customer_code=customer_data.get("customer_code", ""),
+            last4=authorization_data.get("last4", ""),
+            card_type=authorization_data.get("card_type", ""),
+            bank=authorization_data.get("bank", ""),
+            exp_month=str(authorization_data.get("exp_month", "")),
+            exp_year=str(authorization_data.get("exp_year", "")),
+            reusable=authorization_data.get("reusable", False)
+        )
+
+        # Refund the verification payment (optional)
+        try:
+            refund_response = refund_transaction(tx_data.get("id"))
+            if refund_response.get("status"):
+                print(f"Card verification refund successful for user {user_id}")
+        except Exception as refund_error:
+            print(f"Refund failed: {refund_error}")
+
+        return JsonResponse({
+            "success": True,
+            "message": "Card added successfully",
+            "card_last4": new_card.last4,
+            "card_id": new_card.id,
+            "action": "added"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Internal server error"}, status=500)
+
+@csrf_exempt
+@require_POST
+def set_default_card(request):
+    """
+    Set a card as default for the user
+    """
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        card_id = data.get("card_id")
+        
+        if not user_id or not card_id:
+            return JsonResponse({"error": "user_id and card_id are required"}, status=400)
+
+        # First, remove default status from all user's cards
+        PaymentMethod.objects.filter(user_id=user_id).update(is_default=False)
+        
+        # Set the selected card as default
+        updated = PaymentMethod.objects.filter(
+            user_id=user_id, 
+            id=card_id
+        ).update(is_default=True)
+        
+        if not updated:
+            return JsonResponse({"error": "Card not found"}, status=404)
+
+        # Update any active subscription to use this card
+        active_subscription = Subscription.objects.filter(
+            user_id=user_id,
+            status__in=["active", "trialing"]
+        ).first()
+        
+        if active_subscription:
+            new_card = PaymentMethod.objects.get(id=card_id)
+            active_subscription.payment_method = new_card
+            active_subscription.save()
+
+        return JsonResponse({
+            "success": True,
+            "message": "Default card updated successfully"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Internal server error"}, status=500)
+
+@csrf_exempt
+@require_POST
+def remove_card(request):
+    """
+    Remove a card from user's account
+    """
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        card_id = data.get("card_id")
+        
+        if not user_id or not card_id:
+            return JsonResponse({"error": "user_id and card_id are required"}, status=400)
+
+        # Check if this card is being used in active subscription
+        active_subscription = Subscription.objects.filter(
+            user_id=user_id,
+            payment_method_id=card_id,
+            status__in=["active", "trialing"]
+        ).first()
+        
+        if active_subscription:
+            return JsonResponse({
+                "error": "Cannot remove card that is used in active subscription"
+            }, status=400)
+
+        # Get the card before deletion to return info
+        card = PaymentMethod.objects.filter(user_id=user_id, id=card_id).first()
+        if not card:
+            return JsonResponse({"error": "Card not found"}, status=404)
+
+        card_last4 = card.last4
+        card.delete()
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Card ending with {card_last4} removed successfully"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Internal server error"}, status=500)
+
+@csrf_exempt
+def card_update_callback(request):
+    """
+    Handle Paystack callback for card updates
+    """
+    reference = request.GET.get('reference')
     
+    if not reference:
+        return redirect(f"{settings.FRONTEND_URL}/billing?error=no_reference")
+    
+    # Verify the transaction
+    verification = verify_transaction(reference)
+    
+    if not verification.get('status'):
+        return redirect(f"{settings.FRONTEND_URL}/billing?error=verification_failed")
+    
+    tx_data = verification['data']
+    
+    if tx_data['status'] != 'success':
+        return redirect(f"{settings.FRONTEND_URL}/billing?error=payment_failed")
+    
+    # Extract metadata
+    metadata = tx_data.get('metadata', {})
+    user_id = metadata.get('user_id')
+    action = metadata.get('action', 'update')
+    
+    if not user_id:
+        return redirect(f"{settings.FRONTEND_URL}/billing?error=user_not_found")
+    
+    # Process the card update
+    authorization_data = tx_data.get('authorization', {})
+    customer_data = tx_data.get('customer', {})
+    
+    authorization_code = authorization_data.get('authorization_code')
+    if not authorization_code:
+        return redirect(f"{settings.FRONTEND_URL}/billing?error=no_authorization_code")
+    
+    try:
+        # Save the new payment method
+        new_card = PaymentMethod.objects.create(
+            user_id=user_id,
+            authorization_code=authorization_code,
+            customer_code=customer_data.get('customer_code', ''),
+            last4=authorization_data.get('last4', ''),
+            card_type=authorization_data.get('card_type', ''),
+            bank=authorization_data.get('bank', ''),
+            exp_month=str(authorization_data.get('exp_month', '')),
+            exp_year=str(authorization_data.get('exp_year', '')),
+            reusable=authorization_data.get('reusable', False)
+        )
+        
+        # Refund the verification payment
+        try:
+            refund_response = refund_transaction(tx_data.get("id"))
+            if refund_response.get("status"):
+                print(f"Card verification refund successful for user {user_id}")
+        except Exception as refund_error:
+            print(f"Refund failed: {refund_error}")
+        
+        return redirect(f"{settings.FRONTEND_URL}/billing?card_update=success&last4={new_card.last4}")
+        
+    except Exception as e:
+        return redirect(f"{settings.FRONTEND_URL}/billing?error=processing_error")
+    
+@csrf_exempt
+@require_POST
+def test_add_card(request):
+    """
+    TEST ENDPOINT: Add a test card without Paystack
+    """
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        
+        if not user_id:
+            return JsonResponse({"error": "user_id is required"}, status=400)
+
+        # Create test payment method
+        import uuid
+        test_card = PaymentMethod.objects.create(
+            user_id=user_id,
+            authorization_code=f"AUTH_test_{uuid.uuid4().hex[:8]}",
+            customer_code=f"CUST_test_{user_id}",
+            last4="5050",
+            card_type="visa",
+            bank="Test Bank",
+            exp_month="12",
+            exp_year="2025",
+            reusable=True,
+            is_default=False
+        )
+
+        return JsonResponse({
+            "success": True,
+            "message": "Test card added successfully",
+            "card": {
+                "id": test_card.id,
+                "last4": test_card.last4,
+                "card_type": test_card.card_type,
+                "bank": test_card.bank,
+                "exp_month": test_card.exp_month,
+                "exp_year": test_card.exp_year,
+                "is_default": test_card.is_default
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

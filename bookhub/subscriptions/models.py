@@ -20,9 +20,13 @@ class PaymentMethod(models.Model):
     exp_year = models.CharField(max_length=4, blank=True, null=True)
     reusable = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-is_default', '-created_at']
     def __str__(self):
-        return f"PaymentMethod for {self.user_id} ({self.last4})"
+        return f"PaymentMethod for {self.user_id}, {self.card_type}, (****{self.last4})"
 
 class Subscription(models.Model):
     """

@@ -10,6 +10,8 @@ SECRET_KEY = config('DJANGO_SECRET_KEY')
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')
 
+FRONTEND_URL = "http://127.0.0.1:8080"
+
 PAYSTACK_PLAN_CODES = {
     "monthly": config("MONTHLY_PLAN"),
     "yearly": config("YEARLY_PLAN"),
@@ -17,7 +19,7 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "85f2ae251fab.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "b82d3ffbefa0.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [

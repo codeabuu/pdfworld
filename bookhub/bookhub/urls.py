@@ -36,7 +36,14 @@ from subscriptions.views import (
     start_paid_subscription, 
     create_recurring_subscription,
     cancel_subscription,
-    create_test_payment
+    create_test_payment,
+    get_customer_cards,
+    initialize_card_update,
+    verify_card_update,
+    set_default_card,
+    remove_card,
+    card_update_callback,
+    test_add_card
     )
 
 urlpatterns = [
@@ -83,4 +90,12 @@ urlpatterns = [
 
     path('api/resend-confirmation-email/', resend_confirmation_email, name='resend_confirmation_email'),
     path('api/check-email-confirmation/', check_email_confirmation, name='check_email_confirmation'),
+
+    path('api/cards/', get_customer_cards, name='get_customer_cards'),
+    path('api/cards/initialize-update/', initialize_card_update, name='initialize_card_update'),
+    path('api/cards/verify-update/', verify_card_update, name='verify_card_update'),
+    path('api/cards/set-default/', set_default_card, name='set_default_card'),
+    path('api/cards/remove/', remove_card, name='remove_card'),
+    path('api/cards/update-callback/', card_update_callback, name='card_update_callback'),
+    path('api/test-add/', test_add_card, name='test_add_card'),
 ]
