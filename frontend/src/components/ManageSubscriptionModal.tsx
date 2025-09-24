@@ -17,10 +17,15 @@ import {
   Crown,
   X,
   Edit3,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Check,
+  Plus,
+  RefreshCw
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { cardService, Card } from "@/services/cardService";
 
 interface ManageSubscriptionModalProps {
   isOpen: boolean;
@@ -36,22 +41,36 @@ const ManageSubscriptionModal = ({
   user 
 }: ManageSubscriptionModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [isLoadingCards, setIsLoadingCards] = useState(false);
+  const [isUpdatingCard, setIsUpdatingCard] = useState(false);
   const { toast } = useToast();
 
-  // Mock billing data - in a real app, this would come from your backend
-  const [billingInfo, setBillingInfo] = useState({
-    paymentMethod: "Visa ending in 4242",
-    cardExpiry: "12/2025",
-    billingAddress: {
-      line1: "123 Main St",
-      line2: "Apt 4B",
-      city: "San Francisco",
-      state: "CA",
-      zip: "94103",
-      country: "United States"
+  // Load user's cards when modal opens
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      loadUserCards();
     }
-  });
+  }, [isOpen, user]);
+
+  const loadUserCards = async () => {
+    if (!user?.id) return;
+    
+    setIsLoadingCards(true);
+    try {
+      const userCards = await cardService.getCustomerCards(user.id);
+      setCards(userCards);
+    } catch (error: any) {
+      console.error("Failed to load cards:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load payment methods",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingCards(false);
+    }
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
@@ -112,30 +131,157 @@ const ManageSubscriptionModal = ({
     return null;
   };
 
+  const handleAddCard = async () => {
+    if (!user?.id || !user?.email) {
+      toast({
+        title: "Error",
+        description: "User information missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingCard(true);
+    try {
+      const result = await cardService.initializeCardUpdate(user.email, user.id, "add");
+      
+      // Redirect to Paystack for card addition
+      window.open(result.authorization_url, "_blank");
+      
+      toast({
+        title: "Add Payment Method",
+        description: "Redirecting to secure payment page...",
+      });
+      
+    } catch (error: any) {
+      console.error("Failed to add card:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initialize card addition",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingCard(false);
+    }
+  };
+
+  const handleSetDefaultCard = async (cardId: number) => {
+    if (!user?.id) return;
+
+    setIsUpdatingCard(true);
+    try {
+      await cardService.setDefaultCard(user.id, cardId);
+      
+      // Update local state
+      setCards(cards.map(card => ({
+        ...card,
+        is_default: card.id === cardId
+      })));
+      
+      toast({
+        title: "Success",
+        description: "Default payment method updated",
+      });
+      
+    } catch (error: any) {
+      console.error("Failed to set default card:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update default card",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingCard(false);
+    }
+  };
+
+  const handleRemoveCard = async (cardId: number, last4: string) => {
+    if (!user?.id) return;
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to remove card ending with ${last4}?`)) {
+      return;
+    }
+
+    setIsUpdatingCard(true);
+    try {
+      await cardService.removeCard(user.id, cardId);
+      
+      // Update local state
+      setCards(cards.filter(card => card.id !== cardId));
+      
+      toast({
+        title: "Success",
+        description: "Payment method removed",
+      });
+      
+    } catch (error: any) {
+      console.error("Failed to remove card:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove card",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingCard(false);
+    }
+  };
+
+  const handleRefreshCards = () => {
+    loadUserCards();
+    toast({
+      title: "Refreshing",
+      description: "Updating payment methods...",
+    });
+  };
+
   const handleUpgradePlan = () => {
     window.open('/pricing', '_blank');
     onClose();
   };
 
-  const handleCancelSubscription = () => {
+  const handleCancelSubscription = async () => {
+    if (!user?.id) return;
+
     setIsLoading(true);
-    // In a real app, this would call your API to cancel the subscription
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch('/api/subscriptions/cancel/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel subscription');
+      }
+
       toast({
         title: "Subscription cancelled",
         description: "Your subscription has been cancelled successfully.",
       });
       onClose();
-    }, 1500);
+    } catch (error: any) {
+      console.error("Failed to cancel subscription:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel subscription",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdateBilling = () => {
-    // In a real app, this would open a payment modal or redirect to a billing portal
-    toast({
-      title: "Billing update",
-      description: "Redirecting to billing portal...",
-    });
+  const getCardIcon = (cardType: string) => {
+    switch (cardType.toLowerCase()) {
+      case 'visa': return '💳';
+      case 'mastercard': return '💳';
+      case 'verve': return '💳';
+      default: return '💳';
+    }
   };
 
   return (
@@ -149,7 +295,7 @@ const ManageSubscriptionModal = ({
               Manage Subscription
             </DialogTitle>
             <DialogDescription>
-              View and manage your subscription details
+              View and manage your subscription and payment methods
             </DialogDescription>
           </DialogHeader>
 
@@ -203,54 +349,106 @@ const ManageSubscriptionModal = ({
               </div>
             </div>
 
-            {/* Billing Information Section */}
+            {/* Payment Methods Section */}
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Billing Information
-              </h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Payment Methods
+                </h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleRefreshCards}
+                  disabled={isLoadingCards}
+                  className="text-xs h-8"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingCards ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
               
-              <div className="space-y-4">
-                {/* Payment Method */}
-                <div className="flex justify-between items-center p-3 border rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium">{billingInfo.paymentMethod}</p>
-                    <p className="text-xs text-muted-foreground">Expires {billingInfo.cardExpiry}</p>
+              <div className="space-y-3">
+                {isLoadingCards ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-sm text-muted-foreground mt-2">Loading payment methods...</p>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={handleUpdateBilling}
-                    className="text-xs h-8"
-                  >
-                    <Edit3 className="h-3 w-3 mr-1" />
-                    Update
-                  </Button>
-                </div>
-                
-                {/* Billing Address */}
-                <div className="flex justify-between items-start p-3 border rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium flex items-center">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      Billing Address
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {billingInfo.billingAddress.line1}{billingInfo.billingAddress.line2 && `, ${billingInfo.billingAddress.line2}`}<br />
-                      {billingInfo.billingAddress.city}, {billingInfo.billingAddress.state} {billingInfo.billingAddress.zip}<br />
-                      {billingInfo.billingAddress.country}
-                    </p>
+                ) : cards.length === 0 ? (
+                  <div className="text-center py-6 border-2 border-dashed rounded-lg">
+                    <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No payment methods saved</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleAddCard}
+                      disabled={isUpdatingCard}
+                      className="mt-2"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Payment Method
+                    </Button>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={handleUpdateBilling}
-                    className="text-xs h-8"
-                  >
-                    <Edit3 className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                </div>
+                ) : (
+                  <>
+                    {cards.map((card) => (
+                      <div key={card.id} className="flex justify-between items-center p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                            <span className="text-sm">{getCardIcon(card.card_type)}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {card.card_type} ending in {card.last4}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Expires {card.exp_month}/{card.exp_year}
+                              {card.is_default && (
+                                <span className="ml-2 text-green-600">• Default</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-1">
+                          {!card.is_default && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSetDefaultCard(card.id)}
+                              disabled={isUpdatingCard}
+                              className="h-8 px-2 text-xs"
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Set Default
+                            </Button>
+                          )}
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveCard(card.id, card.last4)}
+                            disabled={isUpdatingCard || (cards.length === 1 && card.is_default)}
+                            className="h-8 px-2 text-xs text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleAddCard}
+                      disabled={isUpdatingCard}
+                      className="w-full mt-2"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Another Payment Method
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 

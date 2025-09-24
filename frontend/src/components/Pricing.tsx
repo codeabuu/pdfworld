@@ -495,11 +495,13 @@ const Pricing = () => {
                   Profile & Settings
                 </button>
 
-                  <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                    Help & FAQ
-                  </button>
-                </div>
+                  <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
+                onClick={() => window.open("/help-faq", "_blank", "noopener,noreferrer")}
+                >
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                  Help & FAQ
+                </button>
+              </div>
 
                 {/* Logout */}
                 <div className="px-4 py-2">

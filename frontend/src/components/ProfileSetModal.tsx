@@ -291,9 +291,6 @@ const handleSaveChanges = async () => {
                   <div className="p-2 bg-muted rounded-md text-sm">
                     {user?.email || "No email set"}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Email cannot be changed as it's tied to your login
-                  </p>
                 </div>
 
                 {/* Subscription Information */}

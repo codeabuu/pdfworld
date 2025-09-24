@@ -15,6 +15,7 @@ import { subscriptionService } from "@/services/subservice";
 import { useToast } from "@/components/ui/use-toast";
 import ProfileSettingsModal from "./ProfileSetModal";
 import ManageSubscriptionModal from "./ManageSubscriptionModal";
+import { Link } from "react-router-dom";
 
 interface ProfileDropdownProps {
   user: any;
@@ -156,10 +157,12 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
               Profile & Settings
             </button>
 
-            <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              Help & FAQ
-            </button>
+            <Link to="/help-faq">
+      <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
+        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+        Help & FAQ
+      </button>
+    </Link>
           </div>
 
           {/* Logout */}

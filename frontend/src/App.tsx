@@ -23,6 +23,7 @@ import ResetPasswordHandler from "./components/Resetpasshand.tsx";
 import DebugResetPage from "./components/Debug.tsx";
 import EmailConfirmation from "./components/Emailconf.tsx";
 import ConfirmationRedirect from "./components/confredirect.tsx";
+import HelpAndFAQ from "./components/HelpandFaq.tsx";
 
 const queryClient = new QueryClient();
 
@@ -76,7 +77,9 @@ const App = () => (
             <Route path="/debug-reset" element={<DebugResetPage />} />
             <Route path="/confirm-email" element={<EmailConfirmation />} />
             <Route path="/confirm-redirect" element={<ConfirmationRedirect />} />
+            <Route path="/help-faq" element={<HelpAndFAQ />} />
           </Route>
+        {/* <Route path="/help-faq" element={<HelpAndFAQ />} /> */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
