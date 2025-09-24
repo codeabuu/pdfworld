@@ -770,8 +770,7 @@ def get_customer_cards(request):
         
         if not user_id:
             return JsonResponse({"error": "user_id is required"}, status=400)
-
-        # Get payment methods from database
+            
         payment_methods = PaymentMethod.objects.filter(user_id=user_id, reusable=True)
         
         cards = []
@@ -789,7 +788,12 @@ def get_customer_cards(request):
                 "created_at": pm.created_at.isoformat() if pm.created_at else None
             })
         
-        return JsonResponse({"cards": cards})
+        return JsonResponse({
+            "cards": cards,
+            "card_count": len(cards),
+            "max_cards": 3,
+            "can_add_more": len(cards) < 3
+            })
         
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
@@ -811,7 +815,18 @@ def initialize_card_update(request):
         if not email or not user_id:
             return JsonResponse({"error": "Email and user_id are required"}, status=400)
 
-        # Create a unique reference for this card update
+        current_card_count = PaymentMethod.objects.filter(user_id=user_id, reusable=True).count()
+        MAX_CARDS_PER_USER = 3
+        
+        if current_card_count >= MAX_CARDS_PER_USER:
+            return JsonResponse({
+                "error": f"Maximum limit of {MAX_CARDS_PER_USER} payment methods reached. Please remove an existing card before adding a new one.",
+                "code": "CARD_LIMIT_REACHED",
+                "current_count": current_card_count,
+                "max_limit": MAX_CARDS_PER_USER
+            }, status=400)
+        
+        
         reference = f"card_update_{uuid.uuid4().hex[:10]}"
         
         # Small verification amount (100 kobo = 1 Naira)
@@ -821,7 +836,7 @@ def initialize_card_update(request):
         resp = initialize_transaction(
             email=email,
             amount=amount,
-            callback_url=f"{settings.FRONTEND_URL}/payment/card-update-callback",
+            callback_url=f"{settings.FRONTEND_URL}/dashboard/",
             metadata={
                 "user_id": user_id,
                 "action": action,
