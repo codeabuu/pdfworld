@@ -264,7 +264,7 @@ const Magazines = () => {
           <div className="bg-amber-100 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
             <div className="flex items-center">
               <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-              <span>Having trouble loading images. Page will refresh automatically...</span>
+              <span>Having trouble loading images? Page will refresh automatically...</span>
             </div>
             <Button variant="ghost" size="sm" onClick={handleManualRefresh}>
               Refresh Now

@@ -629,23 +629,6 @@ const Dashboard = ({ children }: DashboardProps) => {
       </div>
 
       {/* Mobile Profile Button - Made Sticky */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40">
-        <Button
-          variant="outline"
-          className="w-full justify-between bg-white shadow-md"
-          onClick={() => navigate("/profile")}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-amber-600" />
-            </div>
-            <span className="text-sm font-medium">
-              {user?.email?.split('@')[0] || "Profile"}
-            </span>
-          </div>
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </div>
 
       {/* Main Content */}
       <div className={`${isMobileMenuOpen ? 'opacity-50' : ''} transition-opacity duration-200 pb-16 sm:pb-0`}>
