@@ -210,6 +210,7 @@ def paystack_webhook(request):
             user_id = metadata.get("user_id")
             plan_type = metadata.get("plan_type")
             payment_type = metadata.get("type")
+            plan = metadata.get("plan")  # ADD THIS LINE
             
             if not user_id:
                 return HttpResponse(status=400)
@@ -251,44 +252,19 @@ def paystack_webhook(request):
                 else:
                     print("⚠️ No authorization code in webhook")
 
-            if payment_type == "subscription_payment" and plan_type in ["monthly", "yearly"]:
-                # Handle paid subscription
-                print(f"Processing paid subscription for user {user_id}, plan: {plan_type}")
-                
-                # Create or update subscription
-                subscription, created = Subscription.objects.get_or_create(
-                    user_id=user_id,
-                    defaults={
-                        "plan": plan_type,
-                        "status": "active",
-                        "amount": 5.00 if plan_type == "monthly" else 50.00,
-                        "current_period_start": timezone.now(),
-                        "current_period_end": timezone.now() + timedelta(days=30 if plan_type == "monthly" else 365),
-                        "trial_used": True,
-                    }
-                )
-                
-                if not created:
-                    subscription.plan = plan_type
-                    subscription.status = "active"
-                    subscription.amount = 5.00 if plan_type == "monthly" else 50.00
-                    subscription.current_period_start = timezone.now()
-                    subscription.current_period_end = timezone.now() + timedelta(days=30 if plan_type == "monthly" else 365)
-                    subscription.trial_used = True
-                    subscription.save()
-                
-                print(f"Paid subscription created for user {user_id}: {plan_type}")
-
-            elif payment_type == "trial_verification" or not payment_type:
+            # FIXED LOGIC: Check for trial first, then paid subscriptions
+            if payment_type == "subscription_payment" and plan == "trial":
                 # Handle trial verification
+                print(f"🎯 PROCESSING TRIAL for user {user_id}")
+                
                 tx_id = data.get("id")
                 
                 # Refund the trial verification payment
                 refund_response = refund_transaction(tx_id)
                 if refund_response.get("status"):
-                    print(f"Refund successful for trial transaction {tx_id}")
+                    print(f"💰 Refund successful for trial transaction {tx_id}")
                 else:
-                    print(f"Refund failed: {refund_response.get('message')}")
+                    print(f"❌ Refund failed: {refund_response.get('message')}")
 
                 # Create trial subscription
                 trial_length_days = 7
@@ -313,7 +289,35 @@ def paystack_webhook(request):
                     sub.current_period_end = None
                     sub.save()
 
-                print(f"Trial subscription started for user {user_id}")
+                print(f"✅ Trial subscription started for user {user_id}")
+
+            elif payment_type == "subscription_payment" and plan_type in ["monthly", "yearly"]:
+                # Handle paid subscription
+                print(f"💰 Processing paid subscription for user {user_id}, plan: {plan_type}")
+                
+                # Create or update subscription
+                subscription, created = Subscription.objects.get_or_create(
+                    user_id=user_id,
+                    defaults={
+                        "plan": plan_type,
+                        "status": "active",
+                        "amount": 5.00 if plan_type == "monthly" else 50.00,
+                        "current_period_start": timezone.now(),
+                        "current_period_end": timezone.now() + timedelta(days=30 if plan_type == "monthly" else 365),
+                        "trial_used": True,
+                    }
+                )
+                
+                if not created:
+                    subscription.plan = plan_type
+                    subscription.status = "active"
+                    subscription.amount = 5.00 if plan_type == "monthly" else 50.00
+                    subscription.current_period_start = timezone.now()
+                    subscription.current_period_end = timezone.now() + timedelta(days=30 if plan_type == "monthly" else 365)
+                    subscription.trial_used = True
+                    subscription.save()
+                
+                print(f"✅ Paid subscription created for user {user_id}: {plan_type}")
 
         elif event_type == "subscription.create":
             # Subscription created in Paystack
