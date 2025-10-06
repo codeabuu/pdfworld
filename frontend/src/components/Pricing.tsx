@@ -407,7 +407,7 @@ const Pricing = () => {
   }
 
   return (
-    <section id="pricing" className="section-padding bg-background">
+    <section id="pricing" className="pt-4 pb-8 bg-background">
       {/* Profile Dropdown - Only show for authenticated users */}
       {isAuthenticated && (
         <div
@@ -526,7 +526,7 @@ const Pricing = () => {
             <Zap className="h-4 w-4" />
             <span>Simple, Transparent Pricing</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+          <h2 className="text-4xl md:text-4xl font-bold text-foreground">
             Choose Your Reading <span className="text-primary"> Journey</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -747,17 +747,17 @@ const Pricing = () => {
             </span>
           </p>
           <ProfileSettingsModal
-  isOpen={isProfileModalOpen}
-  onClose={() => setIsProfileModalOpen(false)}
-  user={user}
-  subscription={subscription}
-/>
-<ManageSubscriptionModal
-  isOpen={isSubscriptionModalOpen}
-  onClose={() => setIsSubscriptionModalOpen(false)}
-  subscription={subscription}
-  user={user}
-/>
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            user={user}
+            subscription={subscription}
+          />
+          <ManageSubscriptionModal
+            isOpen={isSubscriptionModalOpen}
+            onClose={() => setIsSubscriptionModalOpen(false)}
+            subscription={subscription}
+            user={user}
+          />
         </div>
       </div>
     </section>

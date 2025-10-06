@@ -135,7 +135,6 @@ const SignUp = () => {
         form.lastName
       );
       
-      
       // Redirect to login after a short delay
       setTimeout(() => {
         navigate("/confirm-email", { 
@@ -164,9 +163,33 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background Books - Left Side */}
+      <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-48 h-96 opacity-30">
+        <div className="absolute left-8 top-0 w-24 h-32 bg-gradient-to-br from-primary/40 to-primary/20 rounded-lg rotate-12 transform shadow-lg border border-primary/20"></div>
+        <div className="absolute left-16 top-32 w-20 h-28 bg-gradient-to-br from-secondary/40 to-secondary/20 rounded-lg -rotate-6 transform shadow-lg border border-secondary/20"></div>
+        <div className="absolute left-4 top-48 w-28 h-36 bg-gradient-to-br from-accent/40 to-accent/20 rounded-lg rotate-3 transform shadow-lg border border-accent/20"></div>
+        <div className="absolute left-20 top-64 w-24 h-32 bg-gradient-to-br from-primary/40 to-primary/20 rounded-lg -rotate-12 transform shadow-lg border border-primary/20"></div>
+      </div>
+
+      {/* Background Books - Right Side */}
+      <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 w-48 h-96 opacity-30">
+        <div className="absolute right-8 top-0 w-24 h-32 bg-gradient-to-br from-primary/40 to-primary/20 rounded-lg -rotate-12 transform shadow-lg border border-primary/20"></div>
+        <div className="absolute right-16 top-32 w-20 h-28 bg-gradient-to-br from-secondary/40 to-secondary/20 rounded-lg rotate-6 transform shadow-lg border border-secondary/20"></div>
+        <div className="absolute right-4 top-48 w-28 h-36 bg-gradient-to-br from-accent/40 to-accent/20 rounded-lg -rotate-3 transform shadow-lg border border-accent/20"></div>
+        <div className="absolute right-20 top-64 w-24 h-32 bg-gradient-to-br from-primary/40 to-primary/20 rounded-lg rotate-12 transform shadow-lg border border-primary/20"></div>
+      </div>
+
+      {/* Floating Books for Mobile */}
+      <div className="block lg:hidden absolute inset-0 opacity-20">
+        <div className="absolute left-4 top-20 w-16 h-20 bg-gradient-to-br from-primary/40 to-primary/20 rounded-lg rotate-12 shadow-md"></div>
+        <div className="absolute right-4 top-40 w-14 h-18 bg-gradient-to-br from-secondary/40 to-secondary/20 rounded-lg -rotate-6 shadow-md"></div>
+        <div className="absolute left-6 bottom-40 w-18 h-24 bg-gradient-to-br from-accent/40 to-accent/20 rounded-lg rotate-3 shadow-md"></div>
+        <div className="absolute right-8 bottom-20 w-16 h-20 bg-gradient-to-br from-primary/40 to-primary/20 rounded-lg -rotate-12 shadow-md"></div>
+      </div>
+
       {/* Back to Home Button */}
-      <div className="container-custom max-w-7xl mx-auto mb-8">
+      <div className="container-custom max-w-7xl mx-auto mb-6 relative z-10">
         <Button
           variant="ghost"
           onClick={handleBackToHome}
@@ -177,13 +200,13 @@ const SignUp = () => {
         </Button>
       </div>
 
-      <div className="max-w-md w-full mx-auto space-y-8">
+      <div className="max-w-md w-full mx-auto space-y-6 relative z-10">
         {/* Header with Beautiful Gradient */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-2xl mb-3">
             <BookOpen className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h2 className="text-3xl font-bold text-foreground bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
             Join Our Community
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -192,7 +215,7 @@ const SignUp = () => {
         </div>
 
         {/* Sign Up Form Card */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 backdrop-blur-sm bg-card/95">
           <form className="space-y-6" onSubmit={handleSignUp}>
             <div className="space-y-4">
               {/* Name Fields */}

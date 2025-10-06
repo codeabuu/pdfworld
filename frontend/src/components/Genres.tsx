@@ -52,7 +52,7 @@ const Genres = () => {
         // Process popular genres
         if (popularGenresResponse.status === 'fulfilled') {
           // Map the API response to match your Genre type
-          popularGenresData = popularGenresResponse.value.results.map(apiGenre => ({
+            popularGenresData = popularGenresResponse.value.results.map(apiGenre => ({
             id: apiGenre.slug, // Use slug as ID
             name: apiGenre.name,
             slug: apiGenre.slug,
@@ -166,7 +166,7 @@ const Genres = () => {
   };
 
   return (
-    <section className="section-padding bg-background min-h-screen">
+    <section className="pt-4 pb-8 bg-background">
       <div className="container-custom">
         {/* Error Display */}
         {error && (

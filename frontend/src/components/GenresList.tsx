@@ -209,7 +209,7 @@ const GenresList = ({ genres, popularGenres, loading, onGenreSelect, onNavigateB
     <div className="space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-bold text-foreground">Browse Genres</h1>
+        <h1 className="text-3xl font-bold text-foreground">Browse Genres</h1>
         <Button variant="outline" onClick={onNavigateBack}>
           Back to Discovery
         </Button>

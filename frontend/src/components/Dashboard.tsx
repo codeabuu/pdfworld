@@ -19,7 +19,7 @@ import {
   HelpCircle,
   Home,
   BookOpen,
-  Newspaper
+  Newspaper,
 } from "lucide-react";
 import { getNewReleases, getGenres, getMagazines, searchBooks } from "@/lib/api";
 import { 
@@ -96,6 +96,9 @@ const Dashboard = ({ children }: DashboardProps) => {
   const isDashboardHome = location.pathname === '/dashboard';
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -110,6 +113,25 @@ const Dashboard = ({ children }: DashboardProps) => {
       handleSearchResults(searchQuery);
     }
   }, [searchQuery, isSearchMode]);
+
+  useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    // Close profile dropdown if clicked outside
+    if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+      setIsProfileDropdownOpen(false);
+    }
+    
+    if (isMobileMenuOpen) {
+      const backdrop = document.querySelector('.fixed.inset-0.bg-black\\/50');
+      if (backdrop && backdrop === event.target) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, [isMobileMenuOpen]); // ← Add isMobileMenuOpen as dependency
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -453,118 +475,140 @@ const Dashboard = ({ children }: DashboardProps) => {
       </div>
 
       {/* Mobile Navigation Menu */}
-      {isMobileMenuOpen && (
-        <div className="sm:hidden fixed inset-0 z-40 bg-white pt-20">
-          <div className="container-custom">
-            <div className="space-y-4">
-              {/* User Profile Section */}
-              <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg mb-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                  <User className="h-6 w-6 text-amber-600" />
+      {/* Mobile Navigation Menu - Fixed to slide from left */}
+{isMobileMenuOpen && (
+  <div className="sm:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm">
+    <div ref={mobileMenuRef} className="fixed left-0 top-0 h-full w-80 bg-white shadow-xl flex flex-col">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 pt-20"> {/* ← Changed to direct padding, removed container-custom */}
+          <div className="space-y-4">
+            {/* User Profile Section */}
+            <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg mb-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                <User className="h-6 w-6 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user?.email || "User"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {subscription ? (
+                    <span className="flex items-center gap-1">
+                      {subscription.status === "trialing" ? "Free Trial" : subscription.status}
+                    </span>
+                  ) : (
+                    "Free Plan"
+                  )}
+                </p>
+              </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+              </div>
+
+            {/* Navigation Items */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
+                Navigation
+              </h3>
+              {navItems.map((item) => {
+                const IconComponent = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => handleNavItemClick(item.path)}
+                    className={`w-full flex items-center gap-3 px-4 py-4 text-left rounded-xl transition-colors
+                             ${isActive 
+                               ? 'text-amber-600 font-semibold' 
+                               : 'text-foreground hover:bg-amber-50'}`}
+                  >
+                    <IconComponent className={`h-5 w-5 ${isActive ? 'text-amber-600' : 'text-muted-foreground'}`} />
+                    <span className="text-base font-medium">{item.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Account Section */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-base font-medium text-foreground">Account</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {user?.email || "User"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {subscription ? (
-                      <span className="flex items-center gap-1">
-                        {subscription.status === "trialing" ? "Free Trial" : subscription.status}
-                      </span>
-                    ) : (
-                      "Free Plan"
-                    )}
-                  </p>
+                <ChevronDown 
+                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                    isAccountDropdownOpen ? 'rotate-180' : ''
+                  }`} 
+                />
+              </button>
+              
+              {isAccountDropdownOpen && (
+                <div className="mt-2 space-y-1 pl-4">
+                  <button
+                    onClick={() => {
+                      setIsSubscriptionModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+                  >
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Subscription</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setIsProfileModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Settings</span>
+                  </button>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Navigation Items */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
-                  Navigation
-                </h3>
-                {navItems.map((item) => {
-                  const IconComponent = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Button
-                      key={item.name}
-                      onClick={() => handleNavItemClick(item.path)}
-                      className={`w-full justify-start gap-3 py-4 text-left rounded-xl
-                               ${isActive 
-                                 ? 'bg-amber-600 text-white' 
-                                 : 'bg-white text-foreground hover:bg-amber-50'}`}
-                    >
-                      <IconComponent className="h-5 w-5" />
-                      <span className="text-base font-medium">{item.name}</span>
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Account Section */}
-              <div className="space-y-2 pt-4 border-t border-gray-200">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
-                  Account
-                </h3>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    navigate("/subscription");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full justify-start gap-3 py-4 text-left rounded-xl hover:bg-amber-50"
-                >
-                  <CreditCard className="h-5 w-5" />
-                  <span className="text-base font-medium">Subscription</span>
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    navigate("/profile");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full justify-start gap-3 py-4 text-left rounded-xl hover:bg-amber-50"
-                >
-                  <Settings className="h-5 w-5" />
-                  <span className="text-base font-medium">Settings</span>
-                </Button>
-              </div>
-
-              {/* Help Section */}
-              <div className="space-y-2 pt-4 border-t border-gray-200">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
-                  Help
-                </h3>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    // Add help navigation logic
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full justify-start gap-3 py-4 text-left rounded-xl hover:bg-amber-50"
-                >
-                  <HelpCircle className="h-5 w-5" />
-                  <span className="text-base font-medium">Help & Support</span>
-                </Button>
-              </div>
-
-              {/* Logout Button */}
-              <div className="pt-4 border-t border-gray-200">
-                <Button
-                  variant="ghost"
-                  onClick={handleLogout}
-                  className="w-full justify-start gap-3 py-4 text-left rounded-xl text-red-600 hover:bg-red-50"
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span className="text-base font-medium">Logout</span>
-                </Button>
-              </div>
+            {/* Help & Support Section - Single, no dropdown */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  window.open("/help-faq", "_blank", "noopener,noreferrer");
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+              >
+                <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                <span className="text-base font-medium text-foreground">Help & Support</span>
+              </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
+      
+      {/* Logout Button - Fixed at Bottom */}
+      <div className="border-t border-gray-200 bg-white p-4 shrink-0">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-4 text-left rounded-xl text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="text-base font-medium">Logout</span>
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Desktop Navigation & Search - Made Sticky */}
       <div className="hidden sm:block sticky top-0 z-40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">

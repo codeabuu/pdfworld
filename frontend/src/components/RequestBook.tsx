@@ -23,11 +23,11 @@ const RequestBook = () => {
   };
 
   return (
-    <section className="section-padding bg-gradient-to-br from-secondary/20 to-accent/10">
+    <section className="py-12 bg-gradient-to-br from-secondary/20 to-accent/10">
       <div className="container-custom">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center space-y-4 mb-12">
+          <div className="text-center space-y-3 mb-8">
             <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
               <BookPlus className="h-4 w-4" />
               <span>Book Request Feature</span>
@@ -41,7 +41,7 @@ const RequestBook = () => {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
             {/* Request Form */}
             <Card className="card-elevated p-8">
               <form onSubmit={handleSubmit} className="space-y-6">

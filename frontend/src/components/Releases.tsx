@@ -52,10 +52,10 @@ const Releases = () => {
   };
 
   return (
-    <section className="section-padding bg-background">
+    <section className="pt-4 pb-8 bg-background">
       <div className="container-custom">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground">All New Releases</h1>
+          <h1 className="text-3xl font-bold text-foreground">All New Releases</h1>
           <Button variant="outline" onClick={() => navigate(-1)}>
             Back to Discovery
           </Button>

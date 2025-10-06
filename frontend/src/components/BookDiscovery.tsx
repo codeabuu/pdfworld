@@ -228,10 +228,10 @@ const BookDiscovery = () => {
   }
 
   return (
-    <section id="genres" className="section-padding bg-background">
+    <section id="genres" className="pt-8 pb-12 bg-background">
       <div className="container-custom">
         {/* Section Header */}
-        <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-16">
+        <div className="text-center space-y-2 sm:space-y-3 mb-6 sm:mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
             Discover Your Next 
             <span className="text-primary"> Favorite Book</span>

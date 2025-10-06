@@ -5,7 +5,7 @@ import heroImage from "@/assets/hero-books.jpg";
 const Hero = () => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-secondary/30 to-accent/10">
-      <div className="container-custom section-padding">
+      <div className="container-custom py-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[600px]">
           {/* Left Content */}
           <div className="space-y-8 animate-fade-up">
@@ -22,7 +22,7 @@ const Hero = () => {
             </div>
 
             {/* Main Headline */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <h1 className="text-hero bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
                 Explore a World of Books—
                 <span className="block">Instantly</span>

@@ -220,7 +220,7 @@ const Magazines = () => {
   };
 
   return (
-    <section className="section-padding bg-background">
+    <section className="pt-4 pb-8 bg-background">
       <div className="container-custom">
         {/* Mobile Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8">
@@ -233,7 +233,7 @@ const Magazines = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl sm:text-4xl font-bold text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               Magazines & Newspapers
             </h1>
           </div>
