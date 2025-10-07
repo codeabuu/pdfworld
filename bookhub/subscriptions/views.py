@@ -89,17 +89,16 @@ def check_trial_eligibility_endpoint(request):
 @require_POST
 @ratelimit(key='ip', rate='10/h', block=True)
 def start_trial(request):
-    """
-    1. User clicks "Start Free Trial".
-    2. We initialize a Paystack transaction for card verification ($1.99).
-    """
     try:
         data = json.loads(request.body)
         email = data.get("email")
         user_id = data.get("user_id")
 
         if not email or not user_id:
-            return JsonResponse({"error": "Email and user_id are required"}, status=400)
+            return JsonResponse({
+                "error": "Email and user ID are required",
+                "code": "MISSING_FIELDS"
+            }, status=400)
 
         # Check trial eligibility
         is_eligible, error_message, error_code = check_trial_eligibility(user_id)
@@ -109,19 +108,23 @@ def start_trial(request):
                 "code": error_code
             }, status=400)
 
-        # Step 1: Initialize transaction with $1.99 (in kobo)
         resp = initialize_transaction(
             email=email,
-            amount=19900,
+            amount=199,
+            currency="USD",
             callback_url="http://127.0.0.1:8080/login/",
             metadata={"user_id": user_id, "plan": "trial", "type": "subscription_payment"}
         )
         
-        if not resp.get("status"):
-            error_msg = resp.get("message", "Failed to initialize transaction")
-            return JsonResponse({"error": error_msg}, status=400)
-
+        print("Paystack response:", resp)  # Debug
         
+        if not resp.get("status"):
+            error_msg = resp.get("message", "Payment provider error")
+            return JsonResponse({
+                "error": f"Payment setup failed: {error_msg}",
+                "code": "PAYMENT_ERROR"
+            }, status=400)
+
         return JsonResponse({
             "authorization_url": resp["data"]["authorization_url"],
             "reference": resp["data"]["reference"],
@@ -129,10 +132,16 @@ def start_trial(request):
         })
 
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        return JsonResponse({
+            "error": "Invalid request data",
+            "code": "INVALID_JSON"
+        }, status=400)
     except Exception as e:
-        return JsonResponse({"error": "Internal server error"}, status=500)
-
+        print("Server error:", str(e))
+        return JsonResponse({
+            "error": "Internal server error",
+            "code": "SERVER_ERROR"
+        }, status=500)
 
 @csrf_exempt
 @require_POST
@@ -468,6 +477,7 @@ def check_subscription_status(request):
 
         if not user_id:
             return JsonResponse({"error": "user_id is required"}, status=400)
+        
         active_sub = Subscription.objects.filter(user_id=user_id).order_by("-created_at").first()
 
         if not active_sub:
@@ -490,32 +500,49 @@ def check_subscription_status(request):
         days_remaining = 0
         in_trial = False
         trial_has_ended = False
+        status = active_sub.status
 
-        # Trial check
+        # Check if trial has ended
         if active_sub.status == "trialing" and active_sub.trial_end:
             delta = active_sub.trial_end - now
             days_remaining = max(0, delta.days)
             in_trial = True
             trial_has_ended = now > active_sub.trial_end
+            
+            # 🔥 CRITICAL: Update status to "expired" if trial has ended
+            if trial_has_ended:
+                status = "expired"
+                active_sub.status = "expired"
+                active_sub.save()
 
-        # Active subscription check
+        # Check if active subscription has ended
         elif active_sub.status == "active" and active_sub.current_period_end:
             delta = active_sub.current_period_end - now
             days_remaining = max(0, delta.days)
+            
+            # 🔥 CRITICAL: Update status to "expired" if period has ended
+            if now > active_sub.current_period_end:
+                status = "expired"
+                # Also update the database record
+                active_sub.status = "expired"
+                active_sub.save()
+
+        # Calculate has_access based on the updated status
+        has_access = status in ["active", "trialing"] and not trial_has_ended
 
         response = {
-            "has_access": bool(active_sub.is_active() if callable(active_sub.is_active) else active_sub.is_active),
-    "status": active_sub.status,
-    "plan": active_sub.plan,
-    "amount": float(active_sub.amount or 0),
-    "trial_end": active_sub.trial_end.isoformat() if active_sub.trial_end else None,
-    "current_period_end": active_sub.current_period_end.isoformat() if active_sub.current_period_end else None,
-    "in_trial": in_trial,
-    "trial_has_ended": trial_has_ended,
-    "days_remaining": days_remaining,
-    "is_active": bool(active_sub.is_active() if callable(active_sub.is_active) else active_sub.is_active),
-    "subscription_code": active_sub.subscription_code,
-    "created_at": active_sub.created_at.isoformat() if active_sub.created_at else None,
+            "has_access": has_access,
+            "status": status,  # Use the updated status
+            "plan": active_sub.plan,
+            "amount": float(active_sub.amount or 0),
+            "trial_end": active_sub.trial_end.isoformat() if active_sub.trial_end else None,
+            "current_period_end": active_sub.current_period_end.isoformat() if active_sub.current_period_end else None,
+            "in_trial": in_trial,
+            "trial_has_ended": trial_has_ended,
+            "days_remaining": days_remaining,
+            "is_active": has_access,  # Use the same logic as has_access
+            "subscription_code": active_sub.subscription_code,
+            "created_at": active_sub.created_at.isoformat() if active_sub.created_at else None,
         }
 
         return JsonResponse(response)

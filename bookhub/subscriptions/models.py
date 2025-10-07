@@ -44,6 +44,7 @@ class Subscription(models.Model):
         ("past_due", "Past Due"),
         ("canceled", "Canceled"),
         ("inactive", "Inactive"),
+        ("expired", "Expired"),
     ]
 
     user_id = models.UUIDField()  # Supabase user.id
@@ -87,6 +88,16 @@ class Subscription(models.Model):
             if self.current_period_end:
                 return timezone.now() < self.current_period_end
             return True
+        return False
+    
+    def is_expired(self):
+        """Check if subscription has expired"""
+        if self.status == "expired":
+            return True
+        elif self.status == "trialing":
+            return self.trial_has_ended()
+        elif self.status == "active" and self.current_period_end:
+            return timezone.now() > self.current_period_end
         return False
     
     def get_plan_amount(self):
