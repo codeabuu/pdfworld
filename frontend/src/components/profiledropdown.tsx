@@ -54,11 +54,15 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
       case "past_due":
         return <Badge className="bg-amber-600 text-xs">Past Due</Badge>;
       case "canceled":
-        return (
-          <Badge variant="outline" className="text-xs">
-            Canceled
-          </Badge>
-        );
+        return <Badge variant="outline" className="text-xs">Canceled</Badge>;
+      case "expired":
+        return <Badge className="bg-red-600 text-xs">Expired</Badge>;
+      case "incomplete":
+        return <Badge className="bg-gray-600 text-xs">Incomplete</Badge>;
+      case "incomplete_expired":
+        return <Badge className="bg-red-600 text-xs">Expired</Badge>;
+      case "inactive":
+        return <Badge variant="outline" className="text-xs">Inactive</Badge>;
       default:
         return (
           <Badge variant="outline" className="text-xs">

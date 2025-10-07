@@ -42,7 +42,7 @@ class AuthService {
       const response = await axios.post(`${API_BASE_URL}/api/login/`, {
         email,
         password,
-        rememberMe
+        remember_me: rememberMe
       });
       
       // Store user ID from response if available
@@ -73,7 +73,7 @@ class AuthService {
         password, 
         firstName, 
         lastName,
-        rememberMe
+        remember_me: rememberMe
       });
       return true;
     } catch (error: any) {

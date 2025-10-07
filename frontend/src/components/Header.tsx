@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+
+import ProfileDropdown from "@/components/profiledropdown";
 import { 
   Search, 
   Menu, 
@@ -494,35 +496,143 @@ const Header = ({ onSearch }: HeaderProps) => {
             </nav>
 
             {/* Auth Buttons - Modern with loading state */}
-            <div className="hidden md:flex items-center space-x-3">
-              {isLoading ? (
-                // Show loading state only for auth buttons
-                <div className="flex items-center space-x-3">
-                  <div className="animate-pulse bg-gray-200 h-9 w-16 rounded-lg"></div>
-                  <div className="animate-pulse bg-gray-200 h-9 w-32 rounded-lg"></div>
+           {/* Auth Buttons - Modern with loading state */}
+<div className="hidden md:flex items-center space-x-3">
+  {isLoading ? (
+    // Show loading state only for auth buttons
+    <div className="flex items-center space-x-3">
+      <div className="animate-pulse bg-gray-200 h-9 w-16 rounded-lg"></div>
+      <div className="animate-pulse bg-gray-200 h-9 w-32 rounded-lg"></div>
+    </div>
+  ) : isAuthenticated ? (
+    <div className="flex items-center space-x-3">
+      <Link to="/dashboard">
+        <Button className="bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-6 rounded-lg shadow-sm hover:shadow transition-all duration-200">
+          <Library className="h-4 w-4 mr-2" />
+          Go to Library
+        </Button>
+      </Link>
+      {/* Profile Dropdown */}
+      <div className="relative" ref={accountDropdownRef}>
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+          onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+        >
+          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+            <User className="h-4 w-4 text-amber-600" />
+          </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${
+            isAccountDropdownOpen ? "rotate-180" : ""
+          }`} />
+        </Button>
+
+        {/* Profile Dropdown Menu */}
+        {isAccountDropdownOpen && (
+          <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+            {/* User Info */}
+            <div className="px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <User className="h-5 w-5 text-amber-600" />
                 </div>
-              ) : isAuthenticated ? (
-                <Link to="/dashboard">
-                  <Button className="bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-6 rounded-lg shadow-sm hover:shadow transition-all duration-200">
-                    <Library className="h-4 w-4 mr-2" />
-                    Go to Library
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link to="/login">
-                    <Button variant="outline" className="text-slate-800 hover:text-slate-900 border-slate-700 hover:border-slate-600 transition-colors">
-                      Login
-                    </Button>
-                  </Link>
-                  <Link to="/signup">
-                    <Button className="bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-6 rounded-lg shadow-sm hover:shadow transition-all duration-200">
-                      Start Free Trial
-                    </Button>
-                  </Link>
-                </>
-              )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user?.email || "User"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription ? (
+                      <span className="flex items-center gap-1">
+                        {getPlanBadge(subscription.status)}
+                        {subscription.status === "trialing" && "Trial"}
+                      </span>
+                    ) : (
+                      "Free Plan"
+                    )}
+                  </p>
+                </div>
+              </div>
             </div>
+
+            {/* Subscription Section */}
+            <div className="px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">Subscription</span>
+                {subscription && getPlanBadge(subscription.status)}
+              </div>
+
+              {subscription?.status === "trialing" && subscription.trial_end && (
+                <p className="text-xs text-muted-foreground">
+                  Trial ends: {new Date(subscription.trial_end).toLocaleDateString()}
+                </p>
+              )}
+
+              <button
+                className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md transition-colors"
+                onClick={() => {
+                  setIsSubscriptionModalOpen(true);
+                  setIsAccountDropdownOpen(false);
+                }}
+              >
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                Manage Subscription
+              </button>
+            </div>
+
+            {/* Settings Links */}
+            <div className="px-4 py-2 border-b border-gray-100">
+              <button
+                className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md transition-colors"
+                onClick={() => {
+                  setIsProfileModalOpen(true);
+                  setIsAccountDropdownOpen(false);
+                }}
+              >
+                <User className="h-4 w-4 text-muted-foreground" />
+                Profile & Settings
+              </button>
+
+              <button
+                className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md transition-colors"
+                onClick={() => {
+                  window.open("/help-faq", "_blank", "noopener,noreferrer");
+                  setIsAccountDropdownOpen(false);
+                }}
+              >
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                Help & FAQ
+              </button>
+            </div>
+
+            {/* Logout */}
+            <div className="px-4 py-2">
+              <button
+                className="w-full flex items-center gap-3 px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  ) : (
+    <>
+      <Link to="/login">
+        <Button variant="outline" className="text-slate-800 hover:text-slate-900 border-slate-700 hover:border-slate-600 transition-colors">
+          Login
+        </Button>
+      </Link>
+      <Link to="/signup">
+        <Button className="bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-6 rounded-lg shadow-sm hover:shadow transition-all duration-200">
+          Start Free Trial
+        </Button>
+      </Link>
+    </>
+  )}
+</div>
 
             {/* Mobile Menu Button - Clean */}
             <button

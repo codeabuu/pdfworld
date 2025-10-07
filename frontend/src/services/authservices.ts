@@ -16,6 +16,12 @@ interface AuthResponse {
   session: Session;
 }
 
+interface LoginData {
+  email: string;
+  password: string;
+  remember_me?: boolean; // Add remember_me to the request
+}
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: '/', // or your API base URL

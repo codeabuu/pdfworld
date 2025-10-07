@@ -109,9 +109,9 @@ const ManageSubscriptionModal = ({
     if (!subscription) return null;
     
     if (subscription.amount) {
-      return `$${(subscription.amount / 100).toFixed(2)}`;
+      return `$${(subscription.amount).toFixed(2)}`;
     } else if (subscription.price) {
-      return `$${(subscription.price / 100).toFixed(2)}`;
+      return `$${(subscription.price).toFixed(2)}`;
     }
     
     return null;
