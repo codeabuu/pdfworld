@@ -112,7 +112,7 @@ def start_trial(request):
             email=email,
             amount=199,
             currency="USD",
-            callback_url="http://127.0.0.1:8080/login/",
+            callback_url="http://127.0.0.1:8080/payment-success",
             metadata={"user_id": user_id, "plan": "trial", "type": "subscription_payment"}
         )
         
@@ -596,7 +596,7 @@ def start_paid_subscription(request):
         resp = initialize_transaction(
             email=email,
             plan=plan_code,  # amount will be tied to plan_code on Paystack
-            callback_url="http://127.0.0.1:8080/login/",
+            callback_url="http://127.0.0.1:8080/payment-success/",
             metadata={
                 "user_id": user_id,
                 "plan_type": plan_type,
