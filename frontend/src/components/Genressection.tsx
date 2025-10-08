@@ -32,7 +32,7 @@ export const GenresSection = ({
           book_count: apiGenre.book_count,
         }));
         
-        setPopularGenres(mappedGenres.slice(0, 10)); // Take top 10 popular genres
+        setPopularGenres(mappedGenres.slice(0, 4)); // Take top 10 popular genres
       } catch (err) {
         setError("Failed to load popular genres");
         console.error("Failed to fetch popular genres:", err);

@@ -24,6 +24,8 @@ import DebugResetPage from "./components/Debug.tsx";
 import EmailConfirmation from "./components/Emailconf.tsx";
 import ConfirmationRedirect from "./components/confredirect.tsx";
 import HelpAndFAQ from "./components/HelpandFaq.tsx";
+import PaymentSuccess from "./components/paymentsuccess.tsx";
+
 
 const queryClient = new QueryClient();
 
@@ -77,6 +79,7 @@ const App = () => (
             <Route path="/debug-reset" element={<DebugResetPage />} />
             <Route path="/confirm-email" element={<EmailConfirmation />} />
             <Route path="/confirm-redirect" element={<ConfirmationRedirect />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/help-faq" element={<HelpAndFAQ />} />
           </Route>
         {/* <Route path="/help-faq" element={<HelpAndFAQ />} /> */}

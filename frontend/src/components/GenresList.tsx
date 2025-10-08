@@ -56,7 +56,7 @@ const GenresList = ({ genres, popularGenres, loading, onGenreSelect, onNavigateB
     <>
       {/* Popular genres skeletons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {Array.from({ length: 8 }).map((_, index) => (
+        {Array.from({ length: 4 }).map((_, index) => (
           <div key={index} className="bg-card rounded-lg border border-border overflow-hidden group cursor-wait">
             <div className="h-40 bg-muted animate-pulse rounded-t-lg flex items-center justify-center">
               <Library className="h-12 w-12 text-muted-foreground/50" />
