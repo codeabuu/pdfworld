@@ -427,10 +427,10 @@ const BookDiscovery = () => {
                           <Newspaper className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div>
-                      <Badge className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-blue-600 text-white text-[10px] sm:text-xs">
+                      {/* <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div> */}
+                      {/* <Badge className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-blue-600 text-white text-[10px] sm:text-xs">
                         {magazine.category}
-                      </Badge>
+                      </Badge> */}
                     </div>
                     
                     {/* Magazine Info */}

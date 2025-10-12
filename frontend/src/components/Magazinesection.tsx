@@ -102,9 +102,9 @@ export const MagazinesSection = ({
                       alt={magazine.title}
                       className="object-cover w-full h-full group-hover:scale-102 transition-transform duration-300"
                     />
-                    <Badge className="absolute top-2 left-2 bg-blue-600 text-white text-xs">
+                    {/* <Badge className="absolute top-2 left-2 bg-blue-600 text-white text-xs">
                       {magazine.category}
-                    </Badge>
+                    </Badge> */}
                   </div>
                 </CardHeader>
                 <CardContent className="p-4">
