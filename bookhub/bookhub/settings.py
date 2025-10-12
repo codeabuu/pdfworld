@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'subscriptions',
     'django_crontab',
     'django_ratelimit',
+    'supabase_auth',
 ]
 
 # MIDDLEWARE - MOVE CORS MIDDLEWARE TO TOP
