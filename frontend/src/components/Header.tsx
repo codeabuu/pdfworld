@@ -230,7 +230,7 @@ const mobileAccountDropdownRef = useRef<HTMLDivElement>(null);
     { name: "Home", href: "/", icon: "🏠" },
     { name: "New Releases", href: "/releases", icon: <Sparkles className="h-4 w-4" /> },
     { name: "Genres", href: "/genres", icon: "📚" },
-    { name: "Magazines & News Papers", href: "/magazines", icon: "📰" },
+    { name: "Magazines&NewsPapers", href: "/magazines", icon: "📰" },
     { name: "Pricing", href: "/pricing", icon: <DollarSign className="h-4 w-4" /> },
   ];
 
