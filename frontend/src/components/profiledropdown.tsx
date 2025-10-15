@@ -7,13 +7,15 @@ import {
   User,
   ChevronDown,
   CreditCard,
-  Settings,
   HelpCircle,
   LogOut,
 } from "lucide-react";
 import { authService } from "@/services/Myauthservice";
 import { subscriptionService } from "@/services/subservice";
 import { useToast } from "@/components/ui/use-toast";
+import ProfileSettingsModal from "./ProfileSetModal";
+import ManageSubscriptionModal from "./ManageSubscriptionModal";
+import { Link } from "react-router-dom";
 
 interface ProfileDropdownProps {
   user: any;
@@ -22,6 +24,10 @@ interface ProfileDropdownProps {
 
 const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -48,11 +54,15 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
       case "past_due":
         return <Badge className="bg-amber-600 text-xs">Past Due</Badge>;
       case "canceled":
-        return (
-          <Badge variant="outline" className="text-xs">
-            Canceled
-          </Badge>
-        );
+        return <Badge variant="outline" className="text-xs">Canceled</Badge>;
+      case "expired":
+        return <Badge className="bg-red-600 text-xs">Expired</Badge>;
+      case "incomplete":
+        return <Badge className="bg-gray-600 text-xs">Incomplete</Badge>;
+      case "incomplete_expired":
+        return <Badge className="bg-red-600 text-xs">Expired</Badge>;
+      case "inactive":
+        return <Badge variant="outline" className="text-xs">Inactive</Badge>;
       default:
         return (
           <Badge variant="outline" className="text-xs">
@@ -126,18 +136,16 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
               </p>
             )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full mt-2 text-xs"
+            <button
+              className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
               onClick={() => {
-                navigate("/subscription");
+                setIsSubscriptionModalOpen(true);
                 setIsOpen(false);
               }}
             >
-              <CreditCard className="h-3 w-3 mr-2" />
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
               Manage Subscription
-            </Button>
+            </button>
           </div>
 
           {/* Settings Links */}
@@ -145,7 +153,7 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
             <button
               className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
               onClick={() => {
-                navigate("/testprofile");
+                setIsProfileModalOpen(true);
                 setIsOpen(false);
               }}
             >
@@ -153,15 +161,12 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
               Profile & Settings
             </button>
 
-            <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              Settings
-            </button>
-
-            <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              Help & FAQ
-            </button>
+            <Link to="/help-faq">
+      <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
+        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+        Help & FAQ
+      </button>
+    </Link>
           </div>
 
           {/* Logout */}
@@ -176,7 +181,22 @@ const ProfileDropdown = ({ user, subscription }: ProfileDropdownProps) => {
           </div>
         </div>
       )}
+      <ProfileSettingsModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        subscription={subscription}
+      />
+
+      <ManageSubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        subscription={subscription}
+        user={user}
+      />
     </div>
+
+    
   );
 };
 

@@ -19,6 +19,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  ChevronRight,
 } from "lucide-react";
 import { startPaidSubscription } from "@/lib/api";
 import { authService } from "@/services/Myauthservice";
@@ -31,6 +32,8 @@ import {
 } from "@/utils/subRedirect";
 import { subscriptionService } from "@/services/subservice";
 import axios from "axios";
+import ManageSubscriptionModal from "./ManageSubscriptionModal";
+import ProfileSettingsModal from "./ProfileSetModal";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -57,6 +60,9 @@ const Pricing = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [expandedPlan, setExpandedPlan] = useState<number | null>(null);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -320,6 +326,10 @@ const Pricing = () => {
     }
   };
 
+  const togglePlanExpansion = (index: number) => {
+    setExpandedPlan(expandedPlan === index ? null : index);
+  };
+
   const plans = [
     {
       name: "Free Trial",
@@ -403,139 +413,203 @@ const Pricing = () => {
   }
 
   return (
-    <section id="pricing" className="section-padding bg-background">
-      {/* Profile Dropdown - Only show for authenticated users */}
-      {isAuthenticated && (
-        <div
-          className="hidden sm:block absolute top-4 right-4 z-50"
-          ref={profileDropdownRef}
-        >
-          <div className="relative">
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-amber-50"
-              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            >
-              <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                <User className="h-4 w-4 text-amber-600" />
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </Button>
-
-            {isProfileDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                {/* User Info */}
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                      <User className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {user?.email || "User"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {subscription ? (
-                          <span className="flex items-center gap-1">
-                            {getPlanBadge(subscription.status)}
-                            {subscription.status === "trialing" && "Trial"}
-                          </span>
-                        ) : (
-                          "Free Plan"
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subscription Section */}
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-foreground">
-                      Subscription
-                    </span>
-                    {subscription && getPlanBadge(subscription.status)}
-                  </div>
-
-                  {subscription?.status === "trialing" && subscription.trial_end && (
-                    <p className="text-xs text-muted-foreground">
-                      Trial ends:{" "}
-                      {new Date(subscription.trial_end).toLocaleDateString()}
-                    </p>
-                  )}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-2 text-xs"
-                    onClick={() => {
-                      navigate("/subscription");
-                      setIsProfileDropdownOpen(false);
-                    }}
-                  >
-                    <CreditCard className="h-3 w-3 mr-2" />
-                    Manage Subscription
-                  </Button>
-                </div>
-
-                {/* Settings Links */}
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <button
-                    className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
-                    onClick={() => {
-                      navigate("/testprofile");
-                      setIsProfileDropdownOpen(false);
-                    }}
-                  >
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    Profile & Settings
-                  </button>
-
-                  <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                    Settings
-                  </button>
-
-                  <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                    Help & FAQ
-                  </button>
-                </div>
-
-                {/* Logout */}
-                <div className="px-4 py-2">
-                  <button
-                    className="w-full flex items-center gap-3 px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Log out
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
+    <section id="pricing" className="pt-4 pb-8 bg-background">
       <div className="container-custom">
-        {/* Header */}
-        <div className="text-center space-y-4 mb-16">
+        {/* Header - Mobile Optimized */}
+        <div className="text-center space-y-4 mb-8 px-4">
           <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
             <Zap className="h-4 w-4" />
-            <span>Simple, Transparent Pricing</span>
+            <span>Simple Pricing</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-            Choose Your Reading <span className="text-primary"> Journey</span>
+          <h2 className="text-3xl font-bold text-foreground">
+            Choose Your Reading <span className="text-primary">Journey</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Start with a free trial, then choose the plan that fits your reading
-            lifestyle. Cancel anytime, no questions asked.
+          <p className="text-lg text-muted-foreground">
+            Start with a free trial, upgrade when ready
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {/* 📱 MOBILE VIEW - Compact Cards */}
+        <div className="block lg:hidden space-y-4 px-4">
+          {plans.map((plan, index) => {
+            const IconComponent = plan.icon;
+            const isPopular = plan.popular;
+            const isFree = plan.name === "Free Trial";
+            const isExpanded = expandedPlan === index;
+
+            return (
+              <Card
+                key={index}
+                className={`relative p-4 transition-all duration-300 border-2 ${
+                  isPopular
+                    ? "border-primary bg-primary/5"
+                    : isFree
+                    ? "border-success/20 bg-success/5"
+                    : "border-border"
+                }`}
+              >
+                {/* Plan Header - Always Visible */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        isFree
+                          ? "bg-success/10 text-success"
+                          : isPopular
+                          ? "bg-primary/10 text-primary"
+                          : "bg-secondary text-secondary-foreground"
+                      }`}
+                    >
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-bold text-foreground text-lg">
+                        {plan.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {plan.description}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Price & Expand Button */}
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      {isFree ? (
+                        <span className="text-2xl font-bold text-success">Free</span>
+                      ) : (
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-foreground">
+                            ${plan.price}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {plan.period}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => togglePlanExpansion(index)}
+                      className="p-1 h-8 w-8"
+                    >
+                      <ChevronRight
+                        className={`h-4 w-4 transition-transform ${
+                          isExpanded ? "rotate-90" : ""
+                        }`}
+                      />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Badge */}
+                {plan.badge && (
+                  <Badge
+                    className={`absolute -top-2 left-4 ${
+                      isFree
+                        ? "bg-success text-success-foreground"
+                        : isPopular
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    } text-xs`}
+                  >
+                    {plan.badge}
+                  </Badge>
+                )}
+
+                {/* Expanded Content */}
+                {isExpanded && (
+                  <div className="space-y-4 mt-4 border-t pt-4">
+                    {/* Features */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-foreground">
+                        What's included:
+                      </h4>
+                      {plan.features.slice(0, 4).map((feature, featureIndex) => (
+                        <div
+                          key={featureIndex}
+                          className="flex items-start gap-2"
+                        >
+                          <Check
+                            className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
+                              isFree ? "text-success" : "text-primary"
+                            }`}
+                          />
+                          <span className="text-sm text-foreground">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                      {plan.features.length > 4 && (
+                        <div className="text-xs text-muted-foreground">
+                          + {plan.features.length - 4} more features
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CTA Button */}
+                    <Button
+                      onClick={plan.onClick}
+                      disabled={plan.loading}
+                      className={`w-full ${
+                        isFree
+                          ? "bg-success hover:bg-success/90 text-success-foreground"
+                          : isPopular
+                          ? "btn-hero"
+                          : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      }`}
+                      size="lg"
+                    >
+                      {plan.loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        plan.ctaText
+                      )}
+                    </Button>
+
+                    {/* Guarantee */}
+                    {!isFree && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        30-day money-back guarantee
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Collapsed CTA */}
+                {!isExpanded && (
+                  <Button
+                    onClick={plan.onClick}
+                    disabled={plan.loading}
+                    className={`w-full mt-2 ${
+                      isFree
+                        ? "bg-success hover:bg-success/90 text-success-foreground"
+                        : isPopular
+                        ? "btn-hero"
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                    }`}
+                  >
+                    {plan.loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      plan.ctaText
+                    )}
+                  </Button>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* 💻 DESKTOP VIEW - Keep Original Layout */}
+        <div className="hidden lg:grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => {
             const IconComponent = plan.icon;
             const isPopular = plan.popular;
@@ -664,67 +738,66 @@ const Pricing = () => {
           })}
         </div>
 
-        {/* Price Comparison */}
-        <div className="mt-16 text-center bg-muted/50 rounded-lg p-8">
-          <h3 className="text-2xl font-semibold text-foreground mb-4">
+        {/* Price Comparison - Mobile Optimized */}
+        <div className="mt-12 text-center bg-muted/50 rounded-xl p-6 mx-4 lg:mx-0">
+          <h3 className="text-xl font-semibold text-foreground mb-4">
             Yearly Plan Saves You 17%
           </h3>
-          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
+          <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
             <div className="text-center">
-              <div className="text-2xl font-bold text-foreground">$60</div>
-              <div className="text-sm text-muted-foreground">Monthly total</div>
+              <div className="text-xl font-bold text-foreground">$60</div>
+              <div className="text-xs text-muted-foreground">Monthly</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-success">$50</div>
-              <div className="text-sm text-muted-foreground">Yearly total</div>
+              <div className="text-xl font-bold text-success">$50</div>
+              <div className="text-xs text-muted-foreground">Yearly</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">$10</div>
-              <div className="text-sm text-muted-foreground">You save</div>
+              <div className="text-xl font-bold text-primary">$10</div>
+              <div className="text-xs text-muted-foreground">Saved</div>
             </div>
           </div>
         </div>
 
-        {/* Additional Features */}
-        <div className="mt-16 pt-16 border-t border-border">
-          <h3 className="text-2xl font-semibold text-center text-foreground mb-12">
-            All plans include these amazing features
+        {/* Additional Features - Mobile Optimized */}
+        <div className="mt-12 pt-12 border-t border-border px-4 lg:px-0">
+          <h3 className="text-xl font-semibold text-center text-foreground mb-8">
+            All plans include:
           </h3>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
             {[
               {
                 icon: Download,
                 title: "Offline Reading",
-                description: "Download books for reading without internet",
+                description: "Read without internet",
               },
               {
                 icon: Smartphone,
-                title: "Multi-Device Sync",
-                description:
-                  "Seamlessly switch between phone, tablet, and desktop",
+                title: "Multi-Device",
+                description: "Sync across devices",
               },
               {
                 icon: Globe,
                 title: "Global Library",
-                description: "Access content from publishers worldwide",
+                description: "Worldwide content",
               },
               {
                 icon: BookOpen,
                 title: "No Ads",
-                description: "Enjoy uninterrupted reading experience",
+                description: "Uninterrupted reading",
               },
             ].map((feature, index) => {
               const IconComponent = feature.icon as any;
               return (
-                <div key={index} className="text-center space-y-3">
-                  <div className="inline-flex p-3 bg-secondary rounded-lg">
-                    <IconComponent className="h-6 w-6 text-secondary-foreground" />
+                <div key={index} className="text-center space-y-2">
+                  <div className="inline-flex p-2 bg-secondary rounded-lg">
+                    <IconComponent className="h-5 w-5 text-secondary-foreground" />
                   </div>
-                  <h4 className="font-semibold text-foreground">
+                  <h4 className="font-semibold text-foreground text-sm">
                     {feature.title}
                   </h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {feature.description}
                   </p>
                 </div>
@@ -733,18 +806,30 @@ const Pricing = () => {
           </div>
         </div>
 
-        {/* FAQ */}
-        <div className="mt-16 text-center">
-          <p className="text-muted-foreground">
+        {/* FAQ - Mobile Optimized */}
+        <div className="mt-12 text-center px-4 lg:px-0">
+          <p className="text-muted-foreground text-sm">
             Questions?{" "}
             <span className="text-primary font-medium cursor-pointer hover:underline">
-              See our FAQ
+              FAQ
             </span>{" "}
             or{" "}
             <span className="text-primary font-medium cursor-pointer hover:underline">
-              Contact support
+              Support
             </span>
           </p>
+          <ProfileSettingsModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            user={user}
+            subscription={subscription}
+          />
+          <ManageSubscriptionModal
+            isOpen={isSubscriptionModalOpen}
+            onClose={() => setIsSubscriptionModalOpen(false)}
+            subscription={subscription}
+            user={user}
+          />
         </div>
       </div>
     </section>

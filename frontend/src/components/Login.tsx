@@ -11,6 +11,8 @@ import {
   clearIntendedSubscription 
 } from "@/utils/subRedirect";
 
+import ForgotPasswordModal from "./Forgotpass";
+
 interface LoginForm {
   email: string;
   password: string;
@@ -38,6 +40,7 @@ const Login = () => {
   
   // Use the auth hook
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Check if we're continuing a subscription
   useEffect(() => {
@@ -142,6 +145,13 @@ const Login = () => {
       }));
     }
     if (error) setError(null);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleLogin(e as any);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -369,6 +379,7 @@ const Login = () => {
                     placeholder="Enter your email"
                     value={form.email}
                     onChange={handleInputChange("email")}
+                    onKeyPress={handleKeyPress}
                     disabled={loading}
                   />
                 </div>
@@ -396,6 +407,7 @@ const Login = () => {
                     placeholder="Enter your password"
                     value={form.password}
                     onChange={handleInputChange("password")}
+                    onKeyPress={handleKeyPress}
                     disabled={loading}
                   />
                   <button
@@ -431,13 +443,19 @@ const Login = () => {
                   </label>
                 </div>
 
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                <Button
+                  variant="link"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-muted-foreground hover:text-primary"
                 >
-                  Forgot password?
-                </Link>
+                  Forgot your password?
+                </Button>
               </div>
+              <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        onBackToLogin={() => setShowForgotPassword(false)}
+      />
 
               {/* Error Message */}
               {error && (

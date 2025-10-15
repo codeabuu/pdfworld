@@ -62,6 +62,7 @@ export default function SearchPage() {
             className="pl-10 w-full bg-background"
           />
         </form>
+        
       </div>
 
       {isLoading ? (

@@ -52,8 +52,9 @@ def new_releases(request):
             {
             'source': 'OceanofPF New Releases',
             'count': len(cached),
+            'cached': True,
             'results': cached,
-            'cached': True
+            
         }
         )
     logger.info("Cache miss — scraping new releases")
@@ -561,10 +562,10 @@ def genres(request):
             'results': cached
         })
 
-    # This calls scrape_genres() which uses your main link
+    # This calls scrape_genres() which uses th main link
     results = scrape_genres()
     parsed_results = parse_genres(results)
-    cache.set(cache_key, parsed_results, timeout=60 * 60 * 24)
+    cache.set(cache_key, parsed_results, timeout=60 * 60 * 24 * 7)
 
     return Response({
         'source': 'OceanofPDF Genres',

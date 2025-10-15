@@ -1,4 +1,3 @@
-// Dashboard.tsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,10 @@ import {
   CreditCard,
   ChevronDown,
   Settings,
-  HelpCircle
+  HelpCircle,
+  Home,
+  BookOpen,
+  Newspaper,
 } from "lucide-react";
 import { getNewReleases, getGenres, getMagazines, searchBooks } from "@/lib/api";
 import { 
@@ -31,10 +33,12 @@ import { NewReleasesSection } from "./Newreleasessection";
 import { GenresSection} from "./Genressection";
 import { MagazinesSection } from "./Magazinesection";
 import { SearchResults } from "./Searchresults";
-import { renderLoadingSkeleton, navItems, getHighQualityImage } from "@/lib/utils";
+import { renderLoadingSkeleton } from "@/lib/utils";
 import { authService } from "@/services/Myauthservice";
 import { subscriptionService } from "@/services/subservice";
 import axios from "axios";
+import ProfileSettingsModal from "@/components/ProfileSetModal";
+import ManageSubscriptionModal from "./ManageSubscriptionModal";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -45,7 +49,7 @@ interface DashboardProps {
 interface UserData {
   id: string;
   email: string;
-  created_at?: string;
+  name?: string;
 }
 
 interface Subscription {
@@ -56,6 +60,14 @@ interface Subscription {
   trial_has_ended?: boolean;
   message?: string;
 }
+
+// Define navigation items
+const navItems = [
+  { name: "Dashboard", path: "/dashboard", icon: Home },
+  { name: "New Releases", path: "/dashboard/releases", icon: BookOpen },
+  { name: "Genres", path: "/dashboard/genres", icon: Library },
+  { name: "Magazines", path: "/dashboard/magazines", icon: Newspaper },
+];
 
 const Dashboard = ({ children }: DashboardProps) => {
   const navigate = useNavigate();
@@ -81,7 +93,12 @@ const Dashboard = ({ children }: DashboardProps) => {
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const isSearchMode = queryParams.has("q");
-  const isDashboardHome = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+  const isDashboardHome = location.pathname === '/dashboard';
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -96,6 +113,25 @@ const Dashboard = ({ children }: DashboardProps) => {
       handleSearchResults(searchQuery);
     }
   }, [searchQuery, isSearchMode]);
+
+  useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    // Close profile dropdown if clicked outside
+    if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+      setIsProfileDropdownOpen(false);
+    }
+    
+    if (isMobileMenuOpen) {
+      const backdrop = document.querySelector('.fixed.inset-0.bg-black\\/50');
+      if (backdrop && backdrop === event.target) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, [isMobileMenuOpen]); // ← Add isMobileMenuOpen as dependency
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -119,7 +155,7 @@ const Dashboard = ({ children }: DashboardProps) => {
       setNewReleases(releasesResponse.results.slice(0, 4));
       
       const popularGenres = genresResponse.results
-        .sort((a: Genre, b: Genre) => b.count - a.count)
+        .sort((a: Genre, b: Genre) => b.book_count - a.book_count)
         .slice(0, 10);
       setGenres(popularGenres);
       
@@ -146,11 +182,12 @@ const Dashboard = ({ children }: DashboardProps) => {
         const response = await axios.get(`${API_BASE_URL}/api/me/`);
         const userData = response.data.user || response.data;
         const userEmail = userData.email || "Unknown";
+        const userName = userData.name || "";
         
         setUser({
           id: userId,
           email: userEmail,
-          created_at: userData.created_at
+          name: userName
         });
 
         // Fetch subscription status
@@ -161,7 +198,7 @@ const Dashboard = ({ children }: DashboardProps) => {
         setUser({
           id: userId,
           email: "Unknown",
-          created_at: undefined
+          name: "Unknown"
         });
       }
     } catch (error) {
@@ -205,7 +242,7 @@ const Dashboard = ({ children }: DashboardProps) => {
   };
 
   const handleMagazineClick = (magazine: Magazine) => {
-    navigate(`/magazines`);
+    navigate(`/dashboard/magazines`);
     setIsMobileMenuOpen(false);
   };
 
@@ -266,6 +303,18 @@ const Dashboard = ({ children }: DashboardProps) => {
         </div>
       </div>
 
+      {/* Logo */}
+      <div className="hidden sm:flex fixed top-4 left-4 z-50">
+  <Button
+    variant="ghost"
+    onClick={() => navigate("/")}
+    className="flex items-center space-x-2 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 rounded-lg px-3 py-2 shadow-lg border border-gray-200 hover:bg-amber-50 transition-colors"
+  >
+    <BookOpen className="h-6 w-6 text-amber-600" />
+    <h2 className="text-lg font-semibold text-foreground">BookHub</h2>
+  </Button>
+</div>
+
       {/* Profile Dropdown - Made Sticky */}
       <div className="hidden sm:block fixed top-4 right-4 z-50" ref={profileDropdownRef}>
         <div className="relative">
@@ -324,7 +373,7 @@ const Dashboard = ({ children }: DashboardProps) => {
                   size="sm"
                   className="w-full mt-2 text-xs"
                   onClick={() => {
-                    navigate("/subscription");
+                    setIsSubscriptionModalOpen(true);
                     setIsProfileDropdownOpen(false);
                   }}
                 >
@@ -338,7 +387,7 @@ const Dashboard = ({ children }: DashboardProps) => {
                 <button
                   className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
                   onClick={() => {
-                    navigate("/testprofile");
+                    setIsProfileModalOpen(true);
                     setIsProfileDropdownOpen(false);
                   }}
                 >
@@ -346,12 +395,9 @@ const Dashboard = ({ children }: DashboardProps) => {
                   Profile & Settings
                 </button>
                 
-                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                  Settings
-                </button>
-                
-                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
+                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
+                onClick={() => window.open("/help-faq", "_blank", "noopener,noreferrer")}
+                >
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                   Help & FAQ
                 </button>
@@ -376,19 +422,27 @@ const Dashboard = ({ children }: DashboardProps) => {
       <div className="sm:hidden bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="container-custom py-3">
           <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="flex items-center gap-2"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Menu className="h-4 w-4" />
-              )}
-              Menu
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="flex items-center gap-2"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-4 w-4" />
+                ) : (
+                  <Menu className="h-4 w-4" />
+                )}
+                {isMobileMenuOpen ? "Close" : "Menu"}
+              </Button>
+              
+              {/* Library Logo/Brand */}
+              <div className="flex items-center gap-2">
+                <Library className="h-5 w-5 text-amber-600" />
+                <span className="text-sm font-medium text-foreground">Library</span>
+              </div>
+            </div>
             
             {/* Mobile Search Toggle */}
             <Button
@@ -433,31 +487,140 @@ const Dashboard = ({ children }: DashboardProps) => {
       </div>
 
       {/* Mobile Navigation Menu */}
-      {isMobileMenuOpen && (
-        <div className="sm:hidden fixed inset-0 z-40 bg-white pt-20">
-          <div className="container-custom">
+      {/* Mobile Navigation Menu - Fixed to slide from left */}
+{isMobileMenuOpen && (
+  <div className="sm:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm">
+    <div ref={mobileMenuRef} className="fixed left-0 top-0 h-full w-80 bg-white shadow-xl flex flex-col">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 pt-20"> {/* ← Changed to direct padding, removed container-custom */}
+          <div className="space-y-4">
+            {/* User Profile Section */}
+            <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg mb-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                <User className="h-6 w-6 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user?.email || "User"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {subscription ? (
+                    <span className="flex items-center gap-1">
+                      {subscription.status === "trialing" ? "Free Trial" : subscription.status}
+                    </span>
+                  ) : (
+                    "Free Plan"
+                  )}
+                </p>
+              </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+              </div>
+
+            {/* Navigation Items */}
             <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-4">
+                Navigation
+              </h3>
               {navItems.map((item) => {
                 const IconComponent = item.icon;
                 const isActive = location.pathname === item.path;
                 return (
-                  <Button
+                  <button
                     key={item.name}
                     onClick={() => handleNavItemClick(item.path)}
-                    className={`w-full justify-start gap-3 py-4 text-left 
+                    className={`w-full flex items-center gap-3 px-4 py-4 text-left rounded-xl transition-colors
                              ${isActive 
-                               ? 'bg-amber-600 text-white' 
-                               : 'bg-white text-foreground hover:bg-amber-50'}`}
+                               ? 'text-amber-600 font-semibold' 
+                               : 'text-foreground hover:bg-amber-50'}`}
                   >
-                    <IconComponent className="h-5 w-5" />
-                    <span className="text-base">{item.name}</span>
-                  </Button>
+                    <IconComponent className={`h-5 w-5 ${isActive ? 'text-amber-600' : 'text-muted-foreground'}`} />
+                    <span className="text-base font-medium">{item.name}</span>
+                  </button>
                 );
               })}
             </div>
+
+            {/* Account Section */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-base font-medium text-foreground">Account</span>
+                </div>
+                <ChevronDown 
+                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                    isAccountDropdownOpen ? 'rotate-180' : ''
+                  }`} 
+                />
+              </button>
+              
+              {isAccountDropdownOpen && (
+                <div className="mt-2 space-y-1 pl-4">
+                  <button
+                    onClick={() => {
+                      setIsSubscriptionModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+                  >
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Subscription</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setIsProfileModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Settings</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Help & Support Section - Single, no dropdown */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  window.open("/help-faq", "_blank", "noopener,noreferrer");
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-amber-50 transition-colors"
+              >
+                <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                <span className="text-base font-medium text-foreground">Help & Support</span>
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+      
+      {/* Logout Button - Fixed at Bottom */}
+      <div className="border-t border-gray-200 bg-white p-4 shrink-0">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-4 text-left rounded-xl text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="text-base font-medium">Logout</span>
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Desktop Navigation & Search - Made Sticky */}
       <div className="hidden sm:block sticky top-0 z-40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
@@ -522,23 +685,6 @@ const Dashboard = ({ children }: DashboardProps) => {
       </div>
 
       {/* Mobile Profile Button - Made Sticky */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40">
-        <Button
-          variant="outline"
-          className="w-full justify-between bg-white shadow-md"
-          onClick={() => navigate("/profile")}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-amber-600" />
-            </div>
-            <span className="text-sm font-medium">
-              {user?.email?.split('@')[0] || "Profile"}
-            </span>
-          </div>
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </div>
 
       {/* Main Content */}
       <div className={`${isMobileMenuOpen ? 'opacity-50' : ''} transition-opacity duration-200 pb-16 sm:pb-0`}>
@@ -609,6 +755,19 @@ const Dashboard = ({ children }: DashboardProps) => {
             {children || <Outlet />}
           </>
         )}
+        {/* Add this at the end of your dashboard component's return statement */}
+<ProfileSettingsModal
+  isOpen={isProfileModalOpen}
+  onClose={() => setIsProfileModalOpen(false)}
+  user={user}
+  subscription={subscription}
+/>
+<ManageSubscriptionModal
+  isOpen={isSubscriptionModalOpen}
+  onClose={() => setIsSubscriptionModalOpen(false)}
+  subscription={subscription}
+  user={user}
+/>
       </div>
     </div>
   );

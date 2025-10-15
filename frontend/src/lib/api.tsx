@@ -152,3 +152,122 @@ export const startPaidSubscription = async (
     throw new Error('Failed to start subscription. Please try again.');
   }
 };
+
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+  user: {
+    id: string;
+    email: string;
+  };
+}
+
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ResetPasswordData {
+  newPassword: string;
+  confirmPassword: string;
+  token: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+  user: {
+    id: string;
+    email: string;
+  };
+}
+
+
+export const changePassword = async (passwordData: ChangePasswordData): Promise<ChangePasswordResponse> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}api/change-password/`, passwordData, {
+      withCredentials: true,
+    });
+
+    if (response.status !== 200) {
+      throw new Error(response.data.error || 'Password change failed');
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Error changing password:", error);
+    
+    // Handle specific error responses
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    if (error.response?.status === 401) {
+      throw new Error('Authentication failed. Please log in again.');
+    }
+    if (error.response?.status === 400) {
+      throw new Error(error.response.data.error || 'Invalid input data');
+    }
+    
+    throw new Error('Failed to change password. Please try again.');
+  }
+};
+
+export const forgotPassword = async (emailData: ForgotPasswordData): Promise<ForgotPasswordResponse> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}api/forgot-password/`, emailData);
+
+    if (response.status !== 200) {
+      throw new Error(response.data.error || 'Password reset request failed');
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Error requesting password reset:", error);
+    
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    
+    throw new Error('Failed to send password reset email. Please try again.');
+  }
+};
+
+export const resetPassword = async (passwordData: ResetPasswordData): Promise<ResetPasswordResponse> => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}api/reset-password/`, 
+      {
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+        token: passwordData.token // Make sure this is included
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    if (response.status !== 200) {
+      throw new Error(response.data.error || 'Password reset failed');
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Error resetting password:", error);
+    
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    if (error.response?.status === 400) {
+      throw new Error(error.response.data.error || 'Invalid or expired reset token');
+    }
+    
+    throw new Error('Failed to reset password. Please try again.');
+  }
+};

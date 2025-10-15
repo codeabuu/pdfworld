@@ -15,7 +15,18 @@ from scraper.views import (
 from django.contrib import admin
 from django.urls import path
 from customers.views import me
-from customers.auth_views import signup, login, logout, refresh_token, check_auth_status
+from customers.auth_views import (
+    signup, 
+    login, 
+    logout,
+    refresh_token, 
+    check_auth_status, 
+    change_password, 
+    forgot_password, 
+    reset_password, 
+    resend_confirmation_email, 
+    check_email_confirmation
+)
 from subscriptions.views import (
     paystack_webhook, 
     start_trial, 
@@ -24,8 +35,18 @@ from subscriptions.views import (
     check_subscription_status, 
     start_paid_subscription, 
     create_recurring_subscription,
-    cancel_subscription
+    cancel_subscription,
+    create_test_payment,
+    get_customer_cards,
+    initialize_card_update,
+    verify_card_update,
+    set_default_card,
+    remove_card,
+    card_update_callback,
+    test_add_card
     )
+from customers import google_oauth
+from customers.test_gauth import GoogleOAuthCallbackView, TestSupabaseConnectionView, GoogleOAuthInitView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -62,4 +83,29 @@ urlpatterns = [
     path('api/refresh-token/', refresh_token, name='refresh_token'),
     path('api/check-auth/', check_auth_status, name='check_auth_status'),
 
+    path('api/change-password/', change_password, name='change_password'),
+
+    path('api/forgot-password/', forgot_password, name='forgot_password'),
+    path('api/reset-password/', reset_password, name='reset_password'),
+
+    path('payment/test/', create_test_payment, name='test_payment'),
+
+    path('api/resend-confirmation-email/', resend_confirmation_email, name='resend_confirmation_email'),
+    path('api/check-email-confirmation/', check_email_confirmation, name='check_email_confirmation'),
+
+    path('api/cards/', get_customer_cards, name='get_customer_cards'),
+    path('api/cards/initialize-update/', initialize_card_update, name='initialize_card_update'),
+    path('api/cards/verify-update/', verify_card_update, name='verify_card_update'),
+    path('api/cards/set-default/', set_default_card, name='set_default_card'),
+    path('api/cards/remove/', remove_card, name='remove_card'),
+    path('api/cards/update-callback/', card_update_callback, name='card_update_callback'),
+    path('api/test-add/', test_add_card, name='test_add_card'),
+
+
+    path('api/auth/google/init/', google_oauth.google_oauth_init, name='google-oauth-init'),
+    path('api/auth/google/callback/', google_oauth.google_oauth_callback, name='google-oauth-callback'),
+
+    path('test/supabase-connection/', TestSupabaseConnectionView.as_view(), name='test-supabase-connection'),
+    path('auth/google/init/', GoogleOAuthInitView.as_view(), name='google-oauth-init'),
+    path('auth/google/callback/', GoogleOAuthCallbackView.as_view(), name='google-oauth-callback'),
 ]

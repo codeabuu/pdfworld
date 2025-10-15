@@ -199,7 +199,7 @@ const BookDiscovery = () => {
   };
 
   const handleMagazineClick = (magazine: Magazine) => {
-    navigate(`/magazines`, {
+    navigate(`/dashboard/magazines`, {
       state: { magazineData: magazine }
     });
   };
@@ -208,11 +208,11 @@ const BookDiscovery = () => {
     return (
       <section id="browse" className="section-padding bg-background">
         <div className="container-custom">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="card-book">
                 <div className="animate-pulse">
-                  <div className="h-48 sm:h-64 rounded-lg mb-3 sm:mb-4 bg-gray-200"></div>
+                  <div className="h-32 sm:h-48 rounded-lg mb-3 sm:mb-4 bg-gray-200"></div>
                   <div className="space-y-2 sm:space-y-3">
                     <div className="h-4 bg-gray-200 rounded"></div>
                     <div className="h-3 bg-gray-200 rounded w-2/3"></div>
@@ -228,10 +228,10 @@ const BookDiscovery = () => {
   }
 
   return (
-    <section id="genres" className="section-padding bg-background">
+    <section id="genres" className="pt-8 pb-12 bg-background">
       <div className="container-custom">
         {/* Section Header */}
-        <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-16">
+        <div className="text-center space-y-2 sm:space-y-3 mb-6 sm:mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
             Discover Your Next 
             <span className="text-primary"> Favorite Book</span>
@@ -314,12 +314,12 @@ const BookDiscovery = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {featuredBooks.map((book) => (
               <div key={book.id} className="card-book group" onClick={() => handlePreviewClick(book)}>
                 <div className="relative">
                   {/* Book Cover */}
-                  <div className="h-48 sm:h-64 rounded-lg mb-3 sm:mb-4 relative overflow-hidden">
+                  <div className="h-32 sm:h-48 rounded-lg mb-3 sm:mb-4 relative overflow-hidden">
                     {book.image ? (
                       <img 
                         src={getHighQualityImage(book.image)} 
@@ -331,7 +331,7 @@ const BookDiscovery = () => {
                       />
                     ) : (
                       <div className="bg-gradient-to-br from-gray-200 to-gray-300 w-full h-full flex items-center justify-center">
-                        <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
+                        <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div>
@@ -390,10 +390,10 @@ const BookDiscovery = () => {
           </div>
           
           {magazinesLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div key={index} className="animate-pulse">
-                  <div className="h-40 sm:h-48 rounded-lg mb-3 sm:mb-4 bg-gray-200"></div>
+                  <div className="h-32 sm:h-40 rounded-lg mb-3 sm:mb-4 bg-gray-200"></div>
                   <div className="space-y-2">
                     <div className="h-4 bg-gray-200 rounded"></div>
                     <div className="h-3 bg-gray-200 rounded w-2/3"></div>
@@ -403,7 +403,7 @@ const BookDiscovery = () => {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               {magazines.map((magazine) => (
                 <div 
                   key={magazine.id} 
@@ -412,7 +412,7 @@ const BookDiscovery = () => {
                 >
                   <div className="relative">
                     {/* Magazine Cover */}
-                    <div className="h-40 sm:h-48 rounded-lg mb-3 sm:mb-4 relative overflow-hidden">
+                    <div className="h-32 sm:h-40 rounded-lg mb-3 sm:mb-4 relative overflow-hidden">
                       {magazine.image ? (
                         <img 
                           src={getHighQualityImage(magazine.image)} 
@@ -424,13 +424,13 @@ const BookDiscovery = () => {
                         />
                       ) : (
                         <div className="bg-gradient-to-br from-blue-100 to-blue-200 w-full h-full flex items-center justify-center">
-                          <Newspaper className="h-8 w-8 sm:h-12 sm:w-12 text-blue-400" />
+                          <Newspaper className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div>
-                      <Badge className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-blue-600 text-white text-[10px] sm:text-xs">
+                      {/* <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div> */}
+                      {/* <Badge className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-blue-600 text-white text-[10px] sm:text-xs">
                         {magazine.category}
-                      </Badge>
+                      </Badge> */}
                     </div>
                     
                     {/* Magazine Info */}

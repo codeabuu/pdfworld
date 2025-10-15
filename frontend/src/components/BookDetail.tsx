@@ -34,6 +34,66 @@ interface BookDetails {
   }>;
 }
 
+// Download notification component
+const DownloadNotification = ({ 
+  message, 
+  onClose 
+}: { 
+  message: string; 
+  onClose: () => void; 
+}) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+      <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center justify-between min-w-80">
+        <div className="flex items-center">
+          <svg 
+            className="w-5 h-5 mr-3" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth="2" 
+              d="M5 13l4 4L19 7"
+            ></path>
+          </svg>
+          <span>{message}</span>
+        </div>
+        <button 
+          onClick={onClose}
+          className="ml-4 text-white hover:text-green-200"
+        >
+          <svg 
+            className="w-4 h-4" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth="2" 
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function BookDetail() {
   const { book_slug } = useParams();
   const [book, setBook] = useState<BookDetails | null>(null);
@@ -42,6 +102,9 @@ export default function BookDetail() {
   const navigate = useNavigate();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
+  const [downloadComplete, setDownloadComplete] = useState(false);
+  const [downloadMessage, setDownloadMessage] = useState('');
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
 
   useEffect(() => {
     const fetchBookDetails = async () => {
@@ -84,7 +147,10 @@ export default function BookDetail() {
   const handleDownload = async (type: string) => {
     try {
       setDownloadingType(type);
+      setIsDownloading(true);
       setError('');
+      setDownloadComplete(false);
+      
       if (!book?.book_link) {
         throw new Error("Book link not available");
       }
@@ -109,21 +175,41 @@ export default function BookDetail() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${book.metadata.full_book_name}.pdf`;
+      a.download = `${book.metadata.full_book_name}.${type.toLowerCase()}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+
+      // Show success notification
+      setDownloadComplete(true);
+      setDownloadMessage(`Download completed successfully! Your ${type} file is ready.`);
+      
     } catch (err) {
       console.error("Download failed:", err);
       setError(err instanceof Error ? err.message : "Download failed. Please try again.");
+      
+      // Show error notification
+      setDownloadComplete(true);
+      setDownloadMessage("Download failed. Please try again.");
+      
     } finally {
       setDownloadingType(null);
+      setIsDownloading(false);
     }
   };
 
   const handleBack = () => {
-    navigate(-1); // Simple back navigation
+    navigate(-1);
+  };
+
+  const closeNotification = () => {
+    setDownloadComplete(false);
+    setDownloadMessage('');
+  };
+
+  const toggleDescription = () => {
+    setIsDescriptionOpen(!isDescriptionOpen);
   };
 
   if (loading) return <div className="container mx-auto py-8 px-4 text-center">Loading book details...</div>;
@@ -132,6 +218,14 @@ export default function BookDetail() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      {/* Download Notification */}
+      {downloadComplete && (
+        <DownloadNotification 
+          message={downloadMessage} 
+          onClose={closeNotification} 
+        />
+      )}
+
       <div className="container mx-auto py-8 px-4">
         <Button variant="ghost" onClick={handleBack} className="mb-4">
           ← Back
@@ -152,28 +246,33 @@ export default function BookDetail() {
                 />
               </div>
             )}
-            <div className="flex-1">
+          <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2">{book.metadata.full_book_name}</h1>
-              <p className="text-lg text-gray-600 mb-4">by {book.metadata.author_name}</p>
+              <p className="text-lg text-gray-600 mb-6">by {book.metadata.author_name}</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-gray-500">Published Date</p>
-                  <p className="text-gray-700">{book.metadata.date_of_publication}</p>
+              <div className="space-y-4 mb-4">
+                {/* Row 1: Published Date & Genre */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">Published Date</p>
+                    <p className="text-gray-800 font-semibold">{book.metadata.date_of_publication}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">Genre</p>
+                    <p className="text-gray-800 font-semibold">{book.metadata.book_genre}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Genre</p>
-                  <p className="text-gray-700">{book.metadata.book_genre}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Language</p>
-                  <p className="text-gray-700">{book.metadata.edition_language}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">File Sizes</p>
-                  <p className="text-gray-700">
-                    PDF: {book.metadata.pdf_file_size} | EPUB: {book.metadata.epub_file_size}
-                  </p>
+                
+                {/* Row 2: Language & File Size */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">Language</p>
+                    <p className="text-gray-800 font-semibold">{book.metadata.edition_language}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium mb-1">File Size</p>
+                    <p className="text-gray-800 font-semibold">PDF: {book.metadata.pdf_file_size}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -189,65 +288,139 @@ export default function BookDetail() {
               </div>
             )}
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h2 className="text-xl font-semibold mb-2">Description</h2>
-              {book.description.map((paragraph, index) => (
-                <p key={index} className="text-gray-700 mb-4 whitespace-pre-line">
-                  {paragraph.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                </p>
-              ))}
+            {/* Description Dropdown */}
+            <div className="bg-gray-50 rounded-lg border border-gray-200">
+              <button
+                onClick={toggleDescription}
+                className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-100 transition-colors rounded-lg"
+              >
+                <h2 className="text-xl font-semibold">Description</h2>
+                <svg
+                  className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                    isDescriptionOpen ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              
+              {isDescriptionOpen && (
+                <div className="px-4 pb-4 pt-2 border-t border-gray-200">
+                  {book.description.map((paragraph, index) => (
+                    <p 
+                      key={index} 
+                      className="text-gray-700 mb-4 whitespace-pre-line last:mb-0"
+                    >
+                      {paragraph.replace(/([a-z])([A-Z])/g, '$1 $2')}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg">
               <h2 className="text-xl font-semibold mb-4">Download Options</h2>
               <div className="flex flex-wrap gap-4">
                 {book.download_options.map((option, index) => (
-                  <Button
-                    key={index}
-                    onClick={() => handleDownload(option.type)}
-                    className="min-w-[120px]"
-                    variant="outline"
-                    disabled={isDownloading}
-                  >
-                    <div className="flex items-center gap-2">
-                    {downloadingType === option.type ? (
-                      <>
-                        <svg 
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          fill="none" 
-                          viewBox="0 0 24 24"
-                        >
-                          <circle 
-                            className="opacity-25" 
-                            cx="12" 
-                            cy="12" 
-                            r="10" 
-                            stroke="currentColor" 
-                            strokeWidth="4"
-                          ></circle>
-                          <path 
-                            className="opacity-75" 
-                            fill="currentColor" 
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <span>{option.type}</span>
-                        <span className="text-xs opacity-75">
-                          ({option.type === 'PDF' 
-                            ? book.metadata.pdf_file_size 
-                            : book.metadata.epub_file_size})
-                        </span>
-                      </>
-                    )}
-                    </div>
-                  </Button>
+                  option.type === 'PDF' ? (
+                    <Button
+                      key={index}
+                      onClick={() => handleDownload(option.type)}
+                      className="min-w-[120px]"
+                      variant="outline"
+                      disabled={isDownloading}
+                    >
+                      <div className="flex items-center gap-2">
+                        {downloadingType === option.type ? (
+                          <>
+                            <svg 
+                              className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              fill="none" 
+                              viewBox="0 0 24 24"
+                            >
+                              <circle 
+                                className="opacity-25" 
+                                cx="12" 
+                                cy="12" 
+                                r="10" 
+                                stroke="currentColor" 
+                                strokeWidth="4"
+                              ></circle>
+                              <path 
+                                className="opacity-75" 
+                                fill="currentColor" 
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <span>PDF</span>
+                            <span className="text-xs opacity-75">
+                              ({book.metadata.pdf_file_size})
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </Button>
+                  ) : (
+                    // EPUB Button - Disabled with 🚫 icon
+                    <Button
+                      key={index}
+                      className="min-w-[120px]"
+                      variant="outline"
+                      disabled
+                      title="EPUB downloads are temporarily unavailable"
+                    >
+                      <div className="flex items-center gap-2 opacity-50">
+                        <span>EPUB</span>
+                        <span className="text-xs">({book.metadata.epub_file_size})</span>
+                        <span className="text-red-500">🚫</span>
+                      </div>
+                    </Button>
+                  )
                 ))}
               </div>
+              
+              {/* Download status message */}
+              {isDownloading && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-700 flex items-center">
+                    <svg 
+                      className="animate-spin h-4 w-4 mr-2 text-blue-600" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      fill="none" 
+                      viewBox="0 0 24 24"
+                    >
+                      <circle 
+                        className="opacity-25" 
+                        cx="12" 
+                        cy="12" 
+                        r="10" 
+                        stroke="currentColor" 
+                        strokeWidth="4"
+                      ></circle>
+                      <path 
+                        className="opacity-75" 
+                        fill="currentColor" 
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Preparing your download...
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

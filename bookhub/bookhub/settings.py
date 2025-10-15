@@ -10,6 +10,8 @@ SECRET_KEY = config('DJANGO_SECRET_KEY')
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')
 
+FRONTEND_URL = "http://127.0.0.1:8080"
+
 PAYSTACK_PLAN_CODES = {
     "monthly": config("MONTHLY_PLAN"),
     "yearly": config("YEARLY_PLAN"),
@@ -17,17 +19,17 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "a8da36aee0c2.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "11259e8dc948.ngrok-free.app"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",    # Your frontend origin
     "http://127.0.0.1:8080",    # Alternative frontend origin
     "http://localhost:3000",
-    "http://127.0.0.1:6379"    # Common React dev server port
+    "http://127.0.0.1:6379"
 ]
 
-CORS_ALLOW_CREDENTIALS = True  # ← ADD THIS LINE (CRITICAL!)
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     'content-type',
@@ -48,9 +50,12 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # For session cookies
-SESSION_COOKIE_SAMESITE = 'None'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = True  # Set to True in production with HTTPS
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_NAME = 'sessionid'
 
 # For CSRF cookies
 CSRF_COOKIE_SAMESITE = 'Lax'
@@ -77,6 +82,7 @@ INSTALLED_APPS = [
     'subscriptions',
     'django_crontab',
     'django_ratelimit',
+    'supabase_auth',
 ]
 
 # MIDDLEWARE - MOVE CORS MIDDLEWARE TO TOP
@@ -116,8 +122,7 @@ CRONJOBS = [
 
 WSGI_APPLICATION = 'bookhub.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
 SUPABASE_DB_URL = config('SUPABASE_DB_URL', default=None)
 
 import dj_database_url
@@ -162,8 +167,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 

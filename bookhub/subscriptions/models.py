@@ -20,9 +20,13 @@ class PaymentMethod(models.Model):
     exp_year = models.CharField(max_length=4, blank=True, null=True)
     reusable = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-is_default', '-created_at']
     def __str__(self):
-        return f"PaymentMethod for {self.user_id} ({self.last4})"
+        return f"PaymentMethod for {self.user_id}, {self.card_type}, (****{self.last4})"
 
 class Subscription(models.Model):
     """
@@ -40,6 +44,7 @@ class Subscription(models.Model):
         ("past_due", "Past Due"),
         ("canceled", "Canceled"),
         ("inactive", "Inactive"),
+        ("expired", "Expired"),
     ]
 
     user_id = models.UUIDField()  # Supabase user.id
@@ -83,6 +88,16 @@ class Subscription(models.Model):
             if self.current_period_end:
                 return timezone.now() < self.current_period_end
             return True
+        return False
+    
+    def is_expired(self):
+        """Check if subscription has expired"""
+        if self.status == "expired":
+            return True
+        elif self.status == "trialing":
+            return self.trial_has_ended()
+        elif self.status == "active" and self.current_period_end:
+            return timezone.now() > self.current_period_end
         return False
     
     def get_plan_amount(self):

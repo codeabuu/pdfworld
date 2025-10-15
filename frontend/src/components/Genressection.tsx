@@ -32,7 +32,7 @@ export const GenresSection = ({
           book_count: apiGenre.book_count,
         }));
         
-        setPopularGenres(mappedGenres.slice(0, 10)); // Take top 10 popular genres
+        setPopularGenres(mappedGenres.slice(0, 4)); // Take top 10 popular genres
       } catch (err) {
         setError("Failed to load popular genres");
         console.error("Failed to fetch popular genres:", err);
@@ -92,7 +92,7 @@ export const GenresSection = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {popularGenres.map((genre) => (
             <Button
-              key={genre.id}
+              key={genre.slug}
               variant="outline"
               className="h-12 justify-start px-3 py-2 text-left hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 transition-all duration-200 border text-xs"
               onClick={() => handleGenreClick(genre)}

@@ -8,6 +8,8 @@ import { CheckCircle, XCircle, Loader2, User, ChevronDown, CreditCard, Settings,
 import { subscriptionService } from '@/services/subservice';
 import { authService } from '@/services/Myauthservice';
 import axios from 'axios';
+import ProfileSettingsModal from './ProfileSetModal';
+import ManageSubscriptionModal from './ManageSubscriptionModal';
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -36,6 +38,9 @@ const StartTrial = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   useEffect(() => {
     checkEligibility();
@@ -168,112 +173,6 @@ const StartTrial = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-      {/* Profile Dropdown */}
-      <div className="hidden sm:block absolute top-4 right-4 z-50" ref={profileDropdownRef}>
-        <div className="relative">
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-amber-50"
-            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-          >
-            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-amber-600" />
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </Button>
-
-          {isProfileDropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-              {/* User Info Section */}
-              <div className="px-4 py-3 border-b border-gray-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {user?.email || "User"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {subscription ? (
-                        <span className="flex items-center gap-1">
-                          {getPlanBadge(subscription.status)}
-                          {subscription.status === "trialing" && "Trial"}
-                        </span>
-                      ) : (
-                        "Free Plan"
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Subscription Section */}
-              <div className="px-4 py-3 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-foreground">Subscription</span>
-                  {subscription && getPlanBadge(subscription.status)}
-                </div>
-                
-                {subscription?.status === "trialing" && subscription.trial_end && (
-                  <p className="text-xs text-muted-foreground">
-                    Trial ends: {new Date(subscription.trial_end).toLocaleDateString()}
-                  </p>
-                )}
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2 text-xs"
-                  onClick={() => {
-                    navigate("/subscription");
-                    setIsProfileDropdownOpen(false);
-                  }}
-                >
-                  <CreditCard className="h-3 w-3 mr-2" />
-                  Manage Subscription
-                </Button>
-              </div>
-
-              {/* Settings Links */}
-              <div className="px-4 py-2 border-b border-gray-100">
-                <button
-                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md"
-                  onClick={() => {
-                    navigate("/testprofile");
-                    setIsProfileDropdownOpen(false);
-                  }}
-                >
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  Profile & Settings
-                </button>
-                
-                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                  Settings
-                </button>
-                
-                <button className="w-full flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-amber-50 rounded-md">
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                  Help & FAQ
-                </button>
-              </div>
-
-              {/* Logout Section */}
-              <div className="px-4 py-2">
-                <button
-                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4" />
-                  Log out
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Start Your Free Trial</CardTitle>
@@ -341,6 +240,7 @@ const StartTrial = () => {
           </div>
         </CardContent>
       </Card>
+      
     </div>
   );
 };
