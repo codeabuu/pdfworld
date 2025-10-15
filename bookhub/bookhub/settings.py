@@ -50,9 +50,12 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # For session cookies
-SESSION_COOKIE_SAMESITE = 'None'
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = True  # Set to True in production with HTTPS
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_NAME = 'sessionid'
 
 # For CSRF cookies
 CSRF_COOKIE_SAMESITE = 'Lax'

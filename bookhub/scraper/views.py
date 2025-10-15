@@ -52,8 +52,9 @@ def new_releases(request):
             {
             'source': 'OceanofPF New Releases',
             'count': len(cached),
+            'cached': True,
             'results': cached,
-            'cached': True
+            
         }
         )
     logger.info("Cache miss — scraping new releases")

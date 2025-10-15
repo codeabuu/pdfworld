@@ -45,6 +45,8 @@ from subscriptions.views import (
     card_update_callback,
     test_add_card
     )
+from customers import google_oauth
+from customers.test_gauth import GoogleOAuthCallbackView, TestSupabaseConnectionView, GoogleOAuthInitView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -98,4 +100,12 @@ urlpatterns = [
     path('api/cards/remove/', remove_card, name='remove_card'),
     path('api/cards/update-callback/', card_update_callback, name='card_update_callback'),
     path('api/test-add/', test_add_card, name='test_add_card'),
+
+
+    path('api/auth/google/init/', google_oauth.google_oauth_init, name='google-oauth-init'),
+    path('api/auth/google/callback/', google_oauth.google_oauth_callback, name='google-oauth-callback'),
+
+    path('test/supabase-connection/', TestSupabaseConnectionView.as_view(), name='test-supabase-connection'),
+    path('auth/google/init/', GoogleOAuthInitView.as_view(), name='google-oauth-init'),
+    path('auth/google/callback/', GoogleOAuthCallbackView.as_view(), name='google-oauth-callback'),
 ]
