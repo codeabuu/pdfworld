@@ -500,9 +500,7 @@ const mobileAccountDropdownRef = useRef<HTMLDivElement>(null);
                   )}
                 >
                   {item.name}
-                  {isActive(item.href) && (
-                    <span className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-slate-900 rounded-full"></span>
-                  )}
+                  
                 </Link>
               ))}
             </nav>
