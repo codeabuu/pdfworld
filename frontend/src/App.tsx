@@ -25,6 +25,7 @@ import EmailConfirmation from "./components/Emailconf.tsx";
 import ConfirmationRedirect from "./components/confredirect.tsx";
 import HelpAndFAQ from "./components/HelpandFaq.tsx";
 import PaymentSuccess from "./components/paymentsuccess.tsx";
+import AuthCallback from "./pages/AuthCallback.tsx";
 
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ const App = () => (
             <Route path="/confirm-redirect" element={<ConfirmationRedirect />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/help-faq" element={<HelpAndFAQ />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
           </Route>
         {/* <Route path="/help-faq" element={<HelpAndFAQ />} /> */}
         <Route path="/login" element={<Login />} />

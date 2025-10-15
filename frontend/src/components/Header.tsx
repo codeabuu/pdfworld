@@ -68,6 +68,9 @@ const Header = ({ onSearch }: HeaderProps) => {
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+
+const mobileAccountDropdownRef = useRef<HTMLDivElement>(null);
+
   // Fetch user data when authenticated
   useEffect(() => {
     const fetchUserData = async () => {
@@ -117,10 +120,19 @@ const Header = ({ onSearch }: HeaderProps) => {
       // Close Account Dropdown
       if (
         accountDropdownRef.current &&
-        !accountDropdownRef.current.contains(target)
+        !accountDropdownRef.current.contains(target) &&
+        !isMenuOpen
       ) {
         setIsAccountDropdownOpen(false);
       }
+
+      if (
+      mobileAccountDropdownRef.current &&
+      !mobileAccountDropdownRef.current.contains(target) &&
+      isMenuOpen // Only handle mobile dropdown when mobile menu is open
+    ) {
+      setIsAccountDropdownOpen(false);
+    }
 
       // Close Mobile Menu
       if (

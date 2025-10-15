@@ -303,6 +303,18 @@ const Dashboard = ({ children }: DashboardProps) => {
         </div>
       </div>
 
+      {/* Logo */}
+      <div className="hidden sm:flex fixed top-4 left-4 z-50">
+  <Button
+    variant="ghost"
+    onClick={() => navigate("/")}
+    className="flex items-center space-x-2 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 rounded-lg px-3 py-2 shadow-lg border border-gray-200 hover:bg-amber-50 transition-colors"
+  >
+    <BookOpen className="h-6 w-6 text-amber-600" />
+    <h2 className="text-lg font-semibold text-foreground">BookHub</h2>
+  </Button>
+</div>
+
       {/* Profile Dropdown - Made Sticky */}
       <div className="hidden sm:block fixed top-4 right-4 z-50" ref={profileDropdownRef}>
         <div className="relative">
