@@ -7,18 +7,15 @@ import time
 import random
 from urllib.parse import quote
 import cloudscraper
+import brotli
 
 
 ua=UserAgent()
 
-def make_request(url):
+def make_request(url, decode_brotli=False):
     try:
         scraper = cloudscraper.create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': 'windows',
-                'mobile': False
-            }
+            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
         )
         headers = {
             "User-Agent": (
@@ -29,15 +26,22 @@ def make_request(url):
             "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
         }
+
         resp = scraper.get(url, headers=headers, timeout=15)
         resp.raise_for_status()
+
+        if decode_brotli and resp.headers.get("Content-Encoding") == "br":
+            decoded = brotli.decompress(resp.content).decode('utf-8', errors='ignore')
+            return decoded
+
+        # default local behavior
         if resp.encoding is None:
             resp.encoding = 'utf-8'
         return resp
+
     except Exception as e:
         print(f"Request failed: {e}")
         return None
-    
 def scrape_search(query):
     query = query.strip()
     if not query:

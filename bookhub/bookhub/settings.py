@@ -6,11 +6,13 @@ from supabase import create_client, Client
 BASE_DIR = Path(__file__).resolve().parent.parent
 DOWNLOAD_DIR = os.path.join(BASE_DIR, 'download_temp')
 SECRET_KEY = config('DJANGO_SECRET_KEY')
+REDIS_URL = config('REDIS_URL', default=None)
 
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')
 
 FRONTEND_URL = "http://127.0.0.1:8080"
+BACKEND_URL = config('BACKEND_URL')
 
 PAYSTACK_PLAN_CODES = {
     "monthly": config("MONTHLY_PLAN"),
@@ -19,14 +21,16 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "11259e8dc948.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "11259e8dc948.ngrok-free.app", "bookhub-bold-dew-7754.fly.dev", ".fly.dev"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",    # Your frontend origin
     "http://127.0.0.1:8080",    # Alternative frontend origin
     "http://localhost:3000",
-    "http://127.0.0.1:6379"
+    "http://127.0.0.1:6379",
+    f"https://{BACKEND_URL}",
+    REDIS_URL
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -46,7 +50,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8080",
     "http://localhost:3000",
     "http://127.0.0.1:6379",
-    LIVE_URL
+    LIVE_URL,
+    f"https://{BACKEND_URL}",
+    REDIS_URL,
 ]
 
 # For session cookies
@@ -128,16 +134,34 @@ SUPABASE_DB_URL = config('SUPABASE_DB_URL', default=None)
 import dj_database_url
 
 if SUPABASE_DB_URL:
-    # Use Supabase PostgreSQL database
+    print("🟢 FORCING SUPABASE CONFIGURATION")
+    # Parse the Supabase URL manually to ensure it's used
+    import urllib.parse
+    url = urllib.parse.urlparse(SUPABASE_DB_URL)
+    
+    # EXPLICIT CONFIGURATION - don't use dj_database_url.config()
     DATABASES = {
-        'default': dj_database_url.config(
-            default=SUPABASE_DB_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:] if url.path.startswith('/') else url.path,  # Remove leading slash
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port or 6543,  # Use 6543 for pooler
+            'CONN_MAX_AGE': 300,
+            'OPTIONS': {
+                'connect_timeout': 10,
+                'sslmode': 'require',
+                'keepalives': 1,
+                'keepalives_idle': 30,
+                'keepalives_interval': 10,
+            },
+        }
     }
+    
+    print(f"🟢 Using Supabase: {url.hostname}:{url.port}")
 else:
+    print("🔴 SUPABASE_DB_URL not set")
     # Fall back to SQLite for development
     DATABASES = {
         'default': {
@@ -146,11 +170,17 @@ else:
         }
     }
 
-DATABASE_URL = config('SUPABASE_DB_URL', default=None)
-if DATABASE_URL is not None:
-    DATABASES = {
-        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=0, conn_health_checks=True, ssl_require=True)
-    }
+# DEBUG: Print final database config
+print("=== FINAL DATABASE CONFIG ===")
+print("ENGINE:", DATABASES['default']['ENGINE'])
+print("HOST:", DATABASES['default'].get('HOST', 'Not set'))
+print("PORT:", DATABASES['default'].get('PORT', 'Not set'))
+
+# DATABASE_URL = config('SUPABASE_DB_URL', default=None)
+# if DATABASE_URL is not None:
+#     DATABASES = {
+#         'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=0, conn_health_checks=True, ssl_require=True)
+#     }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -187,12 +217,32 @@ SUPABASE_ANON_KEY = config("SUPABASE_ANON_KEY")
 _supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 SUPABASE_CLIENT = _supabase
 
+import socket
+RUNNING_LOCALLY = socket.gethostname() == "127.0.0.1:8000" or "fly.io" not in os.getenv("FLY_APP_NAME", "")
+
+# if not RUNNING_LOCALLY:
+    # Use Redis in production (Fly.io)
 CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
+"default": {
+    "BACKEND": "django_redis.cache.RedisCache",
+    "LOCATION": REDIS_URL,
+    "OPTIONS": {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "SSL": True,
+        "ssl_cert_reqs": None,
+    },
 }
+}
+print(f"🟢 Using Redis: {REDIS_URL}")
+# else:
+#     # Use local Redis when running locally
+#     CACHES = {
+#         "default": {
+#             "BACKEND": "django_redis.cache.RedisCache",
+#             "LOCATION": "redis://127.0.0.1:6379/1",
+#             "OPTIONS": {
+#                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             },
+#         }
+#     }
+#     print("🟡 Using local Redis")

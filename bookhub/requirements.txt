@@ -44,3 +44,6 @@ supabase==2.18.1
 supabase_auth==2.12.3
 supabase_functions==0.10.1
 urllib3==2.5.0
+django-crontab==0.7.1
+gunicorn==23.0.0
+Brotli==1.1.0
