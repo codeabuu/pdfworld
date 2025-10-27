@@ -21,7 +21,7 @@ PAYSTACK_PLAN_CODES = {
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "11259e8dc948.ngrok-free.app", "bookhub-bold-dew-7754.fly.dev", ".fly.dev"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.101", "11259e8dc948.ngrok-free.app", BACKEND_URL, ".fly.dev"]
 
 # CORS Configuration - FIX THESE:
 CORS_ALLOWED_ORIGINS = [
